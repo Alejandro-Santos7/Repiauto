@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Repiauto - Catálogo de Productos{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-800">Catálogo de Productos</h2>
+        <p class="text-slate-500">Registra los productos que pueden llegar en los pedidos</p>
+    </div>
+    <button onclick="openModal('Nuevo Producto', `<form method='post' action='/products' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>SKU USA</label>
+            <input type='text' name='sku_usa' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+            <p class='text-xs text-slate-500 mt-1'>Al menos uno de los dos SKUs es requerido</p>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>SKU China</label>
+            <input type='text' name='sku_china' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Nombre *</label>
+            <input type='text' name='name' required class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
+        </div>
+    </form>`)" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+    <span>➕</span> Nuevo Producto
+</button>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">SKU USA</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">SKU China</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nombre</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for product in products %}
+            <tr class="hover:bg-slate-50">
+                <td class="px-6 py-4">
+                    <code class="text-sm bg-slate-100 px-2 py-1 rounded">{{ product.sku_usa or '-' }}</code>
+                </td>
+                <td class="px-6 py-4 text-slate-600">
+                    {% if product.sku_china %}<code class="text-sm">{{ product.sku_china }}</code>{% else %}-{% endif %}
+                </td>
+                <td class="px-6 py-4 font-medium text-slate-800">{{ product.name }}</td>
+                <td class="px-6 py-4 text-right space-x-2">
+                    <button onclick="editProduct({{ product.id }}, '{{ product.sku_usa|default('') }}', '{{ product.sku_china|default('') }}', '{{ product.name }}')" class="text-blue-600 hover:text-blue-700">Editar</button>
+                    <button onclick="deleteProduct({{ product.id }})" class="text-red-600 hover:text-red-700">Eliminar</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="px-6 py-12 text-center text-slate-400">
+                    <div class="text-4xl mb-2">📦</div>
+                    No hay productos registrados<br>
+                    <span class="text-sm">Crea tu primer producto para comenzar</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function editProduct(id, skuUsa, skuChina, name) {
+    openModal('Editar Producto', `<form method='post' action='/products/${id}/update' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>SKU USA</label>
+            <input type='text' name='sku_usa' value='${skuUsa}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>SKU China</label>
+            <input type='text' name='sku_china' value='${skuChina}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Nombre *</label>
+            <input type='text' name='name' required value='${name}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div class='flex justify-between'>
+            <button type='button' onclick="openModal('Confirmar', '<p class=text-slate-600 mb-4>¿Eliminar este producto?</p><form method=post action=/products/${id}/delete><button type=submit class=\"px-4 py-2 bg-red-600 text-white rounded-lg\">Eliminar</button></form>')" class='text-red-600 hover:text-red-700'>Eliminar</button>
+            <div class='flex gap-2'>
+                <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+                <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
+            </div>
+        </div>
+    </form>`);
+}
+
+function deleteProduct(id) {
+    openModal('Confirmar Eliminación', `<p class='text-slate-600 mb-4'>¿Estás seguro de eliminar este producto?</p>
+        <form method='post' action='/products/${id}/delete' class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700'>Eliminar</button>
+        </form>`);
+}
+</script>
+{% endblock %}
