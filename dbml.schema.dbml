@@ -1,0 +1,85 @@
+// Repiauto Database Schema (DBML)
+// Generated from SQLAlchemy models in main.py
+
+Table product_catalog {
+  id integer [primary key]
+  sku_usa varchar(50) [unique, note: 'El DNI comercial']
+  sku_china varchar(50) [note: 'El DNI de fábrica']
+  name varchar(200)
+  created_at timestamp
+
+  indexes {
+    sku_usa [unique]
+    sku_china
+  }
+}
+
+Table shipping_containers {
+  id integer [primary key]
+  invoice_number varchar(100) [unique]
+  arrival_date timestamp
+  status varchar(20) [default: 'pending']
+  notes varchar(500)
+  created_at timestamp
+
+  indexes {
+    invoice_number [unique]
+  }
+}
+
+Table orders {
+  id integer [primary key]
+  container_id integer [ref: > shipping_containers.id, on delete: 'CASCADE']
+  invoice_number varchar(100)
+  supplier varchar(200)
+  created_at timestamp
+}
+
+Table boxes {
+  id integer [primary key]
+  order_id integer [ref: > orders.id, on delete: 'CASCADE']
+  box_number integer
+  lpn_code varchar(50) [unique, note: 'Formato: FACTURA-NRO_CAJA (ej: 0989-08)']
+  status varchar(20) [default: 'pending']
+  created_at timestamp
+
+  indexes {
+    lpn_code [unique]
+  }
+}
+
+Table box_items {
+  id integer [primary key]
+  box_id integer [ref: > boxes.id, on delete: 'CASCADE']
+  product_id integer [ref: > product_catalog.id, on delete: 'CASCADE']
+  quantity integer [default: 1]
+}
+
+Table locations {
+  id integer [primary key]
+  full_code varchar(50) [unique, note: 'Formato: 1-P2-A-3 (Almacén 1, Pasillo 2, Rack A, Nivel 3)']
+  warehouse_id integer [default: 1]
+  capacity integer [default: 1]
+  description varchar(200)
+  created_at timestamp
+
+  indexes {
+    full_code [unique]
+  }
+}
+
+Table inventory {
+  id integer [primary key]
+  box_id integer [unique, ref: > boxes.id, on delete: 'CASCADE']
+  location_id integer [ref: > locations.id, on delete: 'SET NULL']
+  status varchar(20) [default: 'stored']
+  moved_at timestamp
+}
+
+// Relationships
+// product_catalog 1:N box_items
+// shipping_containers 1:N orders
+// orders 1:N boxes
+// boxes 1:N box_items
+// boxes 1:1 inventory
+// locations 1:N inventory
