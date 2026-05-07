@@ -5,57 +5,170 @@
 {% block content %}
 <div class="mb-6">
     <a href="/containers" class="text-blue-600 hover:text-blue-700 flex items-center gap-1 mb-2">← Volver a Contenedores</a>
-    <h2 class="text-3xl font-bold text-slate-800">Contenedor: {{ container.invoice_number }}</h2>
-    <p class="text-slate-500">{{ container.arrival_date.strftime('%d/%m/%Y') if container.arrival_date else '' }}{% if container.notes %} | {{ container.notes }}{% endif %}</p>
+    <div class="flex justify-between items-start">
+        <div>
+            <h2 class="text-3xl font-bold text-slate-800">Contenedor: {{ container.invoice_number }}</h2>
+            <p class="text-slate-500">
+                {% if container.bill_number %}Bill: {{ container.bill_number }} | {% endif %}
+                Orden China: <strong>{{ container.order_china.invoice_number if container.order_china else '?' }}</strong>
+                {% if container.arrival_date %} | 📅 {{ container.arrival_date.strftime('%d/%m/%Y') }}{% endif %}
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="editContainer()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Editar</button>
+            <form method="post" action="/containers/{{ container.id }}/status">
+                <input type="hidden" name="status" value="{% if container.status == 'pending' %}arrived{% elif container.status == 'arrived' %}completed{% else %}arrived{% endif %}">
+                <button type="submit" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 text-sm">
+                    {% if container.status == 'pending' %}✅ Marcar Llegado
+                    {% elif container.status == 'arrived' %}✅ Marcar Completado
+                    {% else %}⏸️ Reabrir{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="mt-2">
+        <span class="px-3 py-1 text-sm rounded-full {% if container.status == 'arrived' %}bg-green-100 text-green-700{% elif container.status == 'pending' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">{{ container.status }}</span>
+        {% if container.notes %}<span class="ml-2 text-slate-500">{{ container.notes }}</span>{% endif %}
+    </div>
 </div>
 
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-    <h3 class="text-lg font-semibold text-slate-800 mb-4">➕ Agregar Pedido</h3>
-    <form method="post" action="/containers/{{ container.id }}/orders" class="flex flex-wrap gap-4 items-end">
-        <div class="flex-1 min-w-[200px]">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Número de Factura *</label>
-            <input type="text" name="invoice_number" required class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Ej: 0989">
+    <h3 class="text-lg font-semibold text-slate-800 mb-4">📁 Crear Nueva Caja</h3>
+    <form method="post" action="/containers/{{ container.id }}/boxes" class="flex flex-wrap gap-4 items-end">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Número de Caja *</label>
+            <input type="number" name="box_number" required min="1" class="w-32 px-3 py-2 border border-slate-300 rounded-lg" placeholder="1">
         </div>
-        <div class="flex-1 min-w-[200px]">
-            <label class="block text-sm font-medium text-slate-700 mb-1">Proveedor</label>
-            <input type="text" name="supplier" class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Proveedor">
-        </div>
-        <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">Crear Pedido</button>
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Crear Caja</button>
     </form>
+    <p class="text-sm text-slate-500 mt-1">LPN se genera como: <code class="bg-slate-100 px-1 rounded">{{ container.invoice_number[-4:] if container.invoice_number|length >= 4 else container.invoice_number }}-XX</code></p>
 </div>
 
 <div class="space-y-6">
-    {% for order in orders %}
+    {% for box in boxes %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-slate-50 px-6 py-4 flex justify-between items-center">
-            <div>
-                <h3 class="text-lg font-bold text-slate-800">Pedido: {{ order.invoice_number }}</h3>
-                <p class="text-sm text-slate-500">Proveedor: {{ order.supplier or 'Sin especificar' }}</p>
+        <div class="bg-green-50 px-6 py-4 flex justify-between items-center border-b border-green-100">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">📦</span>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Caja: {{ box.lpn_code }}</h3>
+                    <p class="text-sm text-green-700">Núm: {{ box.box_number }} | Estado: {{ box.status }}</p>
+                </div>
             </div>
             <div class="flex gap-2">
-                <a href="/containers/{{ container.id }}/orders/{{ order.id }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Gestionar Cajas →</a>
-                <form method="post" action="/containers/{{ container.id }}/orders/{{ order.id }}/finalize">
-                    <button type="submit" onclick="return confirm('¿Finalizar pedido?')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">✅ Finalizar</button>
+                <button onclick="editBox({{ box.id }}, {{ box.box_number }})" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Editar Núm</button>
+                <form method="post" action="/containers/{{ container.id }}/boxes/{{ box.id }}/delete">
+                    <button type="submit" onclick="return confirm('¿Eliminar esta caja?')" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700">🗑️</button>
                 </form>
             </div>
         </div>
-        {% if order.boxes %}
-        <div class="px-6 py-4 border-t border-slate-100">
-            <p class="text-sm font-medium text-slate-600 mb-3">Cajas ({{ order.boxes|length }}):</p>
-            <div class="flex flex-wrap gap-2">
-                {% for box in order.boxes %}
-                <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg font-mono text-sm">{{ box.lpn_code }} <span class="text-slate-400">({{ box.product_list|length }} productos)</span></span>
-                {% endfor %}
+
+        <div class="px-6 py-4">
+            <form method="post" action="/containers/{{ container.id }}/boxes/{{ box.id }}/items" class="flex flex-wrap gap-3 items-end mb-4">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Producto</label>
+                    <select name="product_id" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        <option value="">Seleccionar...</option>
+                        {% for p in products %}
+                        <option value="{{ p.id }}">{{ p.sku_usa }} - {{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Cantidad</label>
+                    <input type="number" name="quantity" value="1" min="1" class="w-20 px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Agregar</button>
+            </form>
+
+            {% if box.product_list %}
+            <div class="border-t border-slate-100 pt-4">
+                <p class="text-sm font-medium text-slate-600 mb-3">Productos en esta caja:</p>
+                <div class="space-y-2">
+                    {% for item in box.product_list %}
+                    <div class="flex justify-between items-center bg-slate-50 px-4 py-2 rounded-lg">
+                        <div>
+                            <span class="font-medium text-slate-800">{{ item.product_name }}</span>
+                            <span class="text-slate-500 text-sm ml-2">(SKU: {{ item.product_sku_usa }})</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">×{{ item.quantity }}</span>
+                            <form method="post" action="/containers/{{ container.id }}/boxes/{{ box.id }}/items/{{ item.id }}/delete">
+                                <button type="submit" onclick="return confirm('¿Quitar este producto?')" class="text-red-500 hover:text-red-700 text-sm">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
     {% else %}
     <div class="text-center py-12 text-slate-400 bg-white rounded-xl border border-slate-200">
-        <div class="text-4xl mb-2">📋</div>
-        No hay pedidos en este contenedor<br>
-        <span class="text-sm">Crea un pedido arriba</span>
+        <div class="text-5xl mb-2">📦</div>
+        No hay cajas en este contenedor<br>
+        <span class="text-sm">Crea una caja arriba</span>
     </div>
     {% endfor %}
 </div>
+
+{% if boxes %}
+<div class="mt-6 text-right">
+    <form method="post" action="/containers/{{ container.id }}/finalize">
+        <button type="submit" onclick="return confirm('¿Enviar todas las cajas con productos a inventario?')" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-lg font-semibold">✅ Finalizar y enviar a Inventario</button>
+    </form>
+</div>
+{% endif %}
+
+<script>
+function editContainer() {
+    let chinaOpts = '';
+    {% for o in china_orders %}
+    chinaOpts += `<option value="{{ o.id }}" {% if o.id == container.orders_china_id %}selected{% endif %}>{{ o.invoice_number }}{% if o.supplier %} - {{ o.supplier }}{% endif %}</option>`;
+    {% endfor %}
+    openModal('Editar Contenedor', `<form method='post' action='/containers/{{ container.id }}/update' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Número de Factura *</label>
+            <input type='text' name='invoice_number' required value='{{ container.invoice_number }}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Bill of Lading</label>
+            <input type='text' name='bill_number' value='{{ container.bill_number or '' }}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Orden China *</label>
+            <select name='orders_china_id' required class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+                <option value=''>Seleccionar...</option>
+                ${chinaOpts}
+            </select>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Fecha de Llegada</label>
+            <input type='date' name='arrival_date' value='{{ container.arrival_date.strftime('%Y-%m-%d') if container.arrival_date else '' }}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Notas</label>
+            <textarea name='notes' rows='2' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>{{ container.notes or '' }}</textarea>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
+        </div>
+    </form>`);
+}
+
+function editBox(id, boxNumber) {
+    openModal('Editar Número de Caja', `<form method='post' action='/containers/{{ container.id }}/boxes/${id}/update' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Número de Caja</label>
+            <input type='number' name='box_number' required value='${boxNumber}' min='1' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
+        </div>
+    </form>`);
+}
+</script>
 {% endblock %}

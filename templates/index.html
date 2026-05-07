@@ -6,33 +6,43 @@
 <div class="text-center py-12">
     <h2 class="text-4xl font-bold text-gray-800 mb-4">Sistema de Gestión de Inventario</h2>
     <p class="text-xl text-gray-600 mb-8">Cristalería Automotriz</p>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mt-8">
         <a href="/products" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
             <div class="text-3xl mb-2">📦</div>
             <h3 class="font-bold text-lg">Productos</h3>
-            <p class="text-gray-500 text-sm">Gestión de inventarios</p>
+            <p class="text-2xl font-bold text-amber-600">{{ stats.total_products }}</p>
+            <p class="text-gray-500 text-sm">Catálogo de vidrios</p>
         </a>
-        
+
+        <a href="/orders-china" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <div class="text-3xl mb-2">📄</div>
+            <h3 class="font-bold text-lg">Órdenes China</h3>
+            <p class="text-2xl font-bold text-amber-600">{{ stats.total_orders_china }}</p>
+            <p class="text-gray-500 text-sm">Facturas de proveedores</p>
+        </a>
+
         <a href="/containers" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-3xl mb-2">📁</div>
-            <h3 class="font-bold text-lg">Cajas (LPN)</h3>
-            <p class="text-gray-500 text-sm">Identificación de cajas</p>
+            <div class="text-3xl mb-2">🚢</div>
+            <h3 class="font-bold text-lg">Contenedores</h3>
+            <p class="text-2xl font-bold text-amber-600">{{ stats.total_containers }}</p>
+            <p class="text-gray-500 text-sm">Cajas recibidas</p>
         </a>
-        
+
+        <a href="/inventory" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <div class="text-3xl mb-2">📋</div>
+            <h3 class="font-bold text-lg">Inventario</h3>
+            <p class="text-2xl font-bold text-amber-600">{{ stats.total_inventory }}</p>
+            <p class="text-gray-500 text-sm">Ubicaciones asignadas</p>
+        </a>
+
         <a href="/locations" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
             <div class="text-3xl mb-2">🗺️</div>
             <h3 class="font-bold text-lg">Ubicaciones</h3>
             <p class="text-gray-500 text-sm">Mapa de almacenes</p>
         </a>
-        
-        <a href="/inventory" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-3xl mb-2">📋</div>
-            <h3 class="font-bold text-lg">Inventario</h3>
-            <p class="text-gray-500 text-sm">Movimientos y existencias</p>
-        </a>
     </div>
-    
+
     <div class="mt-12 bg-blue-50 p-6 rounded-lg inline-block text-left">
         <h3 class="font-bold text-lg mb-2">Leyenda de Ubicaciones</h3>
         <p><strong>Almacén 1 (Racks):</strong> 1-P[1-2]-[LETRA]-[NIVEL] → Ej: 1-P2-A-3</p>

@@ -26,6 +26,7 @@
                 <nav class="flex gap-2">
                     <a href="/" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if request.url.path == '/' %}bg-white/20{% endif %}">Dashboard</a>
                     <a href="/products" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/products' in request.url.path %}bg-white/20{% endif %}">Productos</a>
+                    <a href="/orders-china" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/orders-china' in request.url.path %}bg-white/20{% endif %}">Órdenes China</a>
                     <a href="/containers" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/containers' in request.url.path %}bg-white/20{% endif %}">Contenedores</a>
                     <a href="/inventory" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/inventory' in request.url.path %}bg-white/20{% endif %}">Inventario</a>
                     <a href="/locations" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/locations' in request.url.path %}bg-white/20{% endif %}">Ubicaciones</a>

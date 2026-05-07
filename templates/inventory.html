@@ -13,7 +13,7 @@
         <thead class="bg-slate-50">
             <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Caja (LPN)</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Pedido</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contenedor</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Productos</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Ubicación</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Estado</th>
@@ -24,7 +24,7 @@
             {% for item in items %}
             <tr class="hover:bg-slate-50">
                 <td class="px-6 py-4"><code class="text-lg font-bold bg-slate-100 px-3 py-1 rounded">{{ item.box_lpn }}</code></td>
-                <td class="px-6 py-4 text-slate-600">{{ item.order_invoice }}</td>
+                <td class="px-6 py-4 text-slate-600">{{ item.container_invoice }}</td>
                 <td class="px-6 py-4">
                     <div class="flex flex-wrap gap-1">
                         {% for sku, qty in item.products %}
@@ -44,7 +44,7 @@
                         {% if item.status == 'stored' %}bg-green-100 text-green-700
                         {% elif item.status == 'pending_location' %}bg-yellow-100 text-yellow-700
                         {% else %}bg-slate-100 text-slate-700{% endif %}">
-                        {{ 'Sin ubicación' if item.status == 'pending_location' else item.status }}
+                        {% if item.status == 'pending_location' %}Por ubicar{% elif item.status == 'stored' %}Ubicado{% else %}{{ item.status }}{% endif %}
                     </span>
                 </td>
                 <td class="px-6 py-4 text-right">

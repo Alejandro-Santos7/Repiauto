@@ -1,85 +1,218 @@
-// Repiauto Database Schema (DBML)
-// Generated from SQLAlchemy models in main.py
+Table "neon_auth"."invitation" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "organizationId" uuid [not null, ref: > "neon_auth"."organization"."id"]
+  "email" text [not null]
+  "role" text
+  "status" text [not null]
+  "expiresAt" timestamptz [not null]
+  "createdAt" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "inviterId" uuid [not null, ref: > "neon_auth"."user"."id"]
 
-Table product_catalog {
-  id integer [primary key]
-  sku_usa varchar(50) [unique, note: 'El DNI comercial']
-  sku_china varchar(50) [note: 'El DNI de fábrica']
-  name varchar(200)
-  created_at timestamp
-
-  indexes {
-    sku_usa [unique]
-    sku_china
+  Indexes {
+    email [name: "invitation_email_idx"]
+    organizationId [name: "invitation_organizationId_idx"]
   }
 }
 
-Table shipping_containers {
-  id integer [primary key]
-  invoice_number varchar(100) [unique]
-  arrival_date timestamp
-  status varchar(20) [default: 'pending']
-  notes varchar(500)
-  created_at timestamp
+Table "neon_auth"."jwks" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "publicKey" text [not null]
+  "privateKey" text [not null]
+  "createdAt" timestamptz [not null]
+  "expiresAt" timestamptz
+}
 
-  indexes {
-    invoice_number [unique]
+Table "neon_auth"."verification" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "identifier" text [not null]
+  "value" text [not null]
+  "expiresAt" timestamptz [not null]
+  "createdAt" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    identifier [name: "verification_identifier_idx"]
   }
 }
 
-Table orders {
-  id integer [primary key]
-  container_id integer [ref: > shipping_containers.id, on delete: 'CASCADE']
-  invoice_number varchar(100)
-  supplier varchar(200)
-  created_at timestamp
-}
+Table "neon_auth"."organization" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "name" text [not null]
+  "slug" text [unique, not null]
+  "logo" text
+  "createdAt" timestamptz [not null]
+  "metadata" text
 
-Table boxes {
-  id integer [primary key]
-  order_id integer [ref: > orders.id, on delete: 'CASCADE']
-  box_number integer
-  lpn_code varchar(50) [unique, note: 'Formato: FACTURA-NRO_CAJA (ej: 0989-08)']
-  status varchar(20) [default: 'pending']
-  created_at timestamp
-
-  indexes {
-    lpn_code [unique]
+  Indexes {
+    slug [unique, name: "organization_slug_key"]
+    slug [unique, name: "organization_slug_uidx"]
   }
 }
 
-Table box_items {
-  id integer [primary key]
-  box_id integer [ref: > boxes.id, on delete: 'CASCADE']
-  product_id integer [ref: > product_catalog.id, on delete: 'CASCADE']
-  quantity integer [default: 1]
-}
+Table "neon_auth"."session" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "expiresAt" timestamptz [not null]
+  "token" text [unique, not null]
+  "createdAt" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" timestamptz [not null]
+  "ipAddress" text
+  "userAgent" text
+  "userId" uuid [not null, ref: > "neon_auth"."user"."id"]
+  "impersonatedBy" text
+  "activeOrganizationId" text
 
-Table locations {
-  id integer [primary key]
-  full_code varchar(50) [unique, note: 'Formato: 1-P2-A-3 (Almacén 1, Pasillo 2, Rack A, Nivel 3)']
-  warehouse_id integer [default: 1]
-  capacity integer [default: 1]
-  description varchar(200)
-  created_at timestamp
-
-  indexes {
-    full_code [unique]
+  Indexes {
+    userId [name: "session_userId_idx"]
+    token [unique, name: "session_token_key"]
   }
 }
 
-Table inventory {
-  id integer [primary key]
-  box_id integer [unique, ref: > boxes.id, on delete: 'CASCADE']
-  location_id integer [ref: > locations.id, on delete: 'SET NULL']
-  status varchar(20) [default: 'stored']
-  moved_at timestamp
+Table "neon_auth"."project_config" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "name" text [not null]
+  "endpoint_id" text [unique, not null]
+  "created_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "trusted_origins" jsonb [not null]
+  "social_providers" jsonb [not null]
+  "email_provider" jsonb
+  "email_and_password" jsonb
+  "allow_localhost" boolean [not null]
+  "plugin_configs" jsonb
+  "webhook_config" jsonb
+
+  Indexes {
+    endpoint_id [unique, name: "project_config_endpoint_id_key"]
+  }
 }
 
-// Relationships
-// product_catalog 1:N box_items
-// shipping_containers 1:N orders
-// orders 1:N boxes
-// boxes 1:N box_items
-// boxes 1:1 inventory
-// locations 1:N inventory
+Table "neon_auth"."account" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "accountId" text [not null]
+  "providerId" text [not null]
+  "userId" uuid [not null, ref: > "neon_auth"."user"."id"]
+  "accessToken" text
+  "refreshToken" text
+  "idToken" text
+  "accessTokenExpiresAt" timestamptz
+  "refreshTokenExpiresAt" timestamptz
+  "scope" text
+  "password" text
+  "createdAt" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" timestamptz [not null]
+
+  Indexes {
+    userId [name: "account_userId_idx"]
+  }
+}
+
+Table "neon_auth"."member" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "organizationId" uuid [not null, ref: > "neon_auth"."organization"."id"]
+  "userId" uuid [not null, ref: > "neon_auth"."user"."id"]
+  "role" text [not null]
+  "createdAt" timestamptz [not null]
+
+  Indexes {
+    organizationId [name: "member_organizationId_idx"]
+    userId [name: "member_userId_idx"]
+  }
+}
+
+Table "neon_auth"."user" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "name" text [not null]
+  "email" text [unique, not null]
+  "emailVerified" boolean [not null]
+  "image" text
+  "createdAt" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "updatedAt" timestamptz [not null, default: `CURRENT_TIMESTAMP`]
+  "role" text
+  "banned" boolean
+  "banReason" text
+  "banExpires" timestamptz
+
+  Indexes {
+    email [unique, name: "user_email_key"]
+  }
+}
+
+Table "public"."locations" {
+  "id" serial [pk, not null, increment]
+  "full_code" varchar(50) [unique]
+  "warehouse_id" int
+  "capacity" int
+  "description" varchar(200)
+  "created_at" timestamp
+
+  Indexes {
+    full_code [unique, name: "ix_locations_full_code"]
+  }
+}
+
+Table "public"."product_catalog" {
+  "id" serial [pk, not null, increment]
+  "sku_usa" varchar(50)
+  "sku_china" varchar(50)
+  "name" varchar(200)
+  "created_at" timestamp
+
+  Indexes {
+    sku_china [name: "ix_product_catalog_sku_china"]
+    sku_usa [name: "ix_product_catalog_sku_usa"]
+  }
+}
+
+Table "public"."boxes" {
+  "id" serial [pk, not null, increment]
+  "container_id" int [not null, ref: > "public"."shipping_containers"."id", note: 'Caja vinculada directo al contenedor']
+  "box_number" int
+  "lpn_code" varchar(50) [unique, note: 'Formato: FACTURA-NRO_CAJA (ej: 0989-08)']
+  "status" varchar(20) [default: 'pending', note: 'pending → to_locate → located']
+  "created_at" timestamp
+
+  Indexes {
+    lpn_code [unique, name: "boxes_lpn_code_key"]
+  }
+}
+
+Table "public"."orders_china" {
+  "id" serial [pk, not null, increment]
+  "invoice_number" varchar(100) [not null]
+  "supplier" varchar(200)
+  "created_at" timestamp
+}
+
+Table "public"."box_items" {
+  "id" serial [pk, not null, increment]
+  "box_id" int [ref: > "public"."boxes"."id"]
+  "product_id" int [ref: > "public"."product_catalog"."id"]
+  "quantity" int
+}
+
+Table "public"."shipping_containers" {
+  "id" serial [pk, not null, increment]
+  "invoice_number" varchar(100) [unique]
+  "bill_number" varchar(500)
+  "arrival_date" timestamp
+  "status" varchar(20)
+  "notes" varchar(500)
+  "created_at" timestamp
+  "orders_china_id" int [not null, ref: > "public"."orders_china"."id", note: 'Una orden China puede tener N contenedores']
+
+  Indexes {
+    invoice_number [unique, name: "ix_shipping_containers_invoice_number"]
+  }
+}
+
+Table "public"."inventory" {
+  "id" serial [pk, not null, increment]
+  "box_id" int [unique, ref: > "public"."boxes"."id"]
+  "location_id" int [ref: > "public"."locations"."id"]
+  "status" varchar(20)
+  "moved_at" timestamp
+
+  Indexes {
+    box_id [unique, name: "inventory_box_id_key"]
+  }
+}

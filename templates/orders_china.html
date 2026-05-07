@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Repiauto - Órdenes China{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-800">Órdenes China</h2>
+        <p class="text-slate-500">Facturas / Packing lists de proveedores chinos</p>
+    </div>
+    <button onclick="openModal('Nueva Orden China', `<form method='post' action='/orders-china' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Número de Factura *</label>
+            <input type='text' name='invoice_number' required class='w-full px-3 py-2 border border-slate-300 rounded-lg' placeholder='Ej: 0989'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Proveedor</label>
+            <input type='text' name='supplier' class='w-full px-3 py-2 border border-slate-300 rounded-lg' placeholder='Nombre del proveedor'>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700'>Crear</button>
+        </div>
+    </form>`)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-2">
+    <span>➕</span> Nueva Orden China
+</button>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Factura</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Proveedor</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contenedores</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Creada</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for o in orders %}
+            <tr class="hover:bg-slate-50">
+                <td class="px-6 py-4"><strong class="text-slate-800">{{ o.invoice_number }}</strong></td>
+                <td class="px-6 py-4 text-slate-600">{{ o.supplier or '—' }}</td>
+                <td class="px-6 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">{{ o.container_count }}</span></td>
+                <td class="px-6 py-4 text-slate-500 text-sm">{{ o.created_at.strftime('%d/%m/%Y') if o.created_at else '' }}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="editOrderChina({{ o.id }}, '{{ o.invoice_number }}', '{{ o.supplier or '' }}')" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Editar</button>
+                    <button onclick="deleteOrderChina({{ o.id }})" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700">🗑️</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                    <div class="text-4xl mb-2">📋</div>
+                    No hay órdenes de China registradas<br>
+                    <span class="text-sm">Crea la primera para comenzar</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function editOrderChina(id, invoice, supplier) {
+    openModal('Editar Orden China', `<form method='post' action='/orders-china/${id}/update' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Número de Factura *</label>
+            <input type='text' name='invoice_number' required value='${invoice}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Proveedor</label>
+            <input type='text' name='supplier' value='${supplier}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
+        </div>
+    </form>`);
+}
+
+function deleteOrderChina(id) {
+    openModal('Eliminar Orden China', `<p class='text-slate-600 mb-4'>¿Eliminar esta orden? No se puede si tiene contenedores asociados.</p>
+        <form method='post' action='/orders-china/${id}/delete' class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700'>Eliminar</button>
+        </form>`);
+}
+</script>
+{% endblock %}
