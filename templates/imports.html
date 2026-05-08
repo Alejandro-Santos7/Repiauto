@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Repiauto - Importaciones{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-800">Importaciones</h2>
+        <p class="text-slate-500">Ordenes PI y sus contenedores de China</p>
+    </div>
+    <button onclick="createOrder()" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-2">
+        <span>+</span> Nueva Orden
+    </button>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">PI NO</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Proveedor</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contenedores</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Estado</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Fecha</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for o in orders %}
+            <tr class="hover:bg-slate-50">
+                <td class="px-6 py-4">
+                    <a href="/imports/{{ o.id }}" class="text-blue-600 hover:text-blue-800 font-medium">{{ o.pi_number }}</a>
+                </td>
+                <td class="px-6 py-4 text-slate-600">{{ o.supplier or '--' }}</td>
+                <td class="px-6 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">{{ o.container_count }}</span></td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 text-xs rounded-full {% if o.status == 'open' %}bg-green-100 text-green-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ o.status }}</span>
+                </td>
+                <td class="px-6 py-4 text-slate-500 text-sm">{{ o.created_date.strftime('%d/%m/%Y') if o.created_date else (o.created_at.strftime('%d/%m/%Y') if o.created_at else '') }}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="editOrder({{ o.id }}, '{{ o.invoice_number }}', '{{ o.pi_number or '' }}', '{{ o.supplier or '' }}', '{{ o.created_date.strftime('%Y-%m-%d') if o.created_date else '' }}')" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Editar</button>
+                    {% if o.status == 'open' %}
+                    <form method="post" action="/imports/{{ o.id }}/close" class="inline">
+                        <button type="submit" class="px-3 py-1 bg-slate-600 text-white rounded text-sm hover:bg-slate-700">Cerrar</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="/imports/{{ o.id }}/open" class="inline">
+                        <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">Abrir</button>
+                    </form>
+                    {% endif %}
+                    <button onclick="deleteOrder({{ o.id }})" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700">🗑️</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                    <div class="text-4xl mb-2">📋</div>
+                    No hay ordenes registradas<br>
+                    <span class="text-sm">Crea la primera para comenzar</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function createOrder() {
+    openModal('Nueva Orden', `<form method='post' action='/imports' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>PI NO *</label>
+            <input type='text' name='invoice_number' required class='w-full px-3 py-2 border border-slate-300 rounded-lg' placeholder='Ej: DG-SA-VRC260301'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Proveedor</label>
+            <input type='text' name='supplier' class='w-full px-3 py-2 border border-slate-300 rounded-lg' placeholder='Nombre del proveedor'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Fecha</label>
+            <input type='date' name='created_date' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700'>Crear</button>
+        </div>
+    </form>`);
+}
+
+function editOrder(id, pi, pi_show, supplier, cdate) {
+    openModal('Editar Orden', `<form method='post' action='/imports/${id}/update' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>PI NO *</label>
+            <input type='text' name='invoice_number' required value='${pi}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Proveedor</label>
+            <input type='text' name='supplier' value='${supplier}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Fecha</label>
+            <input type='date' name='created_date' value='${cdate}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
+        </div>
+    </form>`);
+}
+
+function deleteOrder(id) {
+    openModal('Eliminar Orden', `<p class='text-slate-600 mb-4'>Eliminar esta orden? No se puede si tiene contenedores asociados.</p>
+        <form method='post' action='/imports/${id}/delete' class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700'>Eliminar</button>
+        </form>`);
+}
+</script>
+{% endblock %}

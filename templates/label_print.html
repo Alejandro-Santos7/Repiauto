@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etiquetas - {{ container_invoice }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @page {
+            size: landscape;
+            margin: 0;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background: white;
+        }
+        .page-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-content: flex-start;
+            padding: 5px;
+        }
+        .label {
+            width: 30%;
+            height: 95%;
+            margin: 1.5%;
+            border: 2px solid black;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .label .box-number {
+            font-size: 100pt;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+        .label .lpn {
+            font-size: 48pt;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .label .info {
+            font-size: 16pt;
+            line-height: 1.6;
+        }
+        .label .info strong {
+            font-size: 18pt;
+        }
+        .label .products {
+            font-size: 12pt;
+            margin-top: 15px;
+            border-top: 1px solid black;
+            padding-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        {% for box in boxes %}
+        <div class="label">
+            <div class="box-number">{{ box.number }}</div>
+            <div class="lpn">{{ box.lpn }}</div>
+            <div class="info">
+                <div>PI: <strong>{{ order_pi }}</strong></div>
+                <div>Invoice: <strong>{{ container_invoice }}</strong></div>
+                {% if container_ref %}<div>Ref: {{ container_ref }}</div>{% endif %}
+            </div>
+            {% if box.products %}
+            <div class="products">
+                {% for item in box.products[:4] %}
+                {{ item.name | truncate(35) if item.name else '?' }} x{{ item.qty }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                {% if box.products|length > 4 %}<br>+{{ box.products|length - 4 }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        window.onload = function() { window.print(); };
+    </script>
+</body>
+</html>

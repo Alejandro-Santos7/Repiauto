@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Repiauto - Orden {{ order.pi_number or order.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="/imports" class="text-blue-600 hover:text-blue-700 flex items-center gap-1 mb-2">- Volver a Importaciones</a>
+    <div class="flex justify-between items-start">
+        <div>
+            <h2 class="text-3xl font-bold text-slate-800">PI: {{ order.pi_number or order.invoice_number }}</h2>
+            <p class="text-slate-500">
+                {% if order.supplier %}Proveedor: <strong>{{ order.supplier }}</strong> | {% endif %}
+                Fecha: {{ order.created_date.strftime('%d/%m/%Y') if order.created_date else (order.created_at.strftime('%d/%m/%Y') if order.created_at else '--') }}
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="editOrder()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Editar</button>
+            {% if order.status == 'open' %}
+            <form method="post" action="/imports/{{ order.id }}/close">
+                <button type="submit" onclick="return confirm('Cerrar esta orden? No se podran agregar mas contenedores.')" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 text-sm">🔒 Cerrar Orden</button>
+            </form>
+            {% else %}
+            <form method="post" action="/imports/{{ order.id }}/open">
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">🔓 Reabrir Orden</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    <div class="mt-2">
+        <span class="px-3 py-1 text-sm rounded-full {% if order.status == 'open' %}bg-green-100 text-green-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ order.status }}</span>
+    </div>
+</div>
+
+{% if order.status == 'open' %}
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <h3 class="text-lg font-semibold text-slate-800 mb-4">🚢 Nuevo Contenedor</h3>
+    <form method="post" action="/imports/{{ order.id }}/containers" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Invoice No *</label>
+            <input type="text" name="invoice_number" required class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Ej: FDQ25120993">
+            <p class="text-xs text-slate-400 mt-1">Ultimos 4 digitos se usan para LPN de cajas</p>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Ref No</label>
+            <input type="text" name="ref_number" class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Ej: DG-SA-VRC260301-1">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Bill of Lading</label>
+            <input type="text" name="bill_number" class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Numero de guia">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de Llegada</label>
+            <input type="date" name="arrival_date" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de Creacion</label>
+            <input type="date" name="created_date" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+            <input type="text" name="notes" class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Opcional">
+        </div>
+        <div class="md:col-span-2">
+            <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">Crear Contenedor</button>
+        </div>
+    </form>
+</div>
+{% else %}
+<div class="bg-slate-100 rounded-xl border border-slate-300 p-4 mb-6 text-center text-slate-500">
+    🔒 Esta orden esta cerrada. Reabrela para agregar contenedores.
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for c in containers %}
+    <a href="/imports/{{ order.id }}/containers/{{ c.id }}" class="block bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-amber-300 transition">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <h3 class="font-bold text-slate-800 text-lg">{{ c.invoice_number }}</h3>
+                {% if c.ref_number %}<p class="text-xs text-slate-400">Ref: {{ c.ref_number }}</p>{% endif %}
+            </div>
+            <span class="px-2 py-1 text-xs rounded-full {% if c.status == 'arrived' %}bg-green-100 text-green-700{% elif c.status == 'pending' %}bg-yellow-100 text-yellow-700{% elif c.status == 'completed' %}bg-blue-100 text-blue-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ c.status }}</span>
+        </div>
+        {% if c.bill_number %}<p class="text-xs text-slate-400 mb-1">Bill: {{ c.bill_number }}</p>{% endif %}
+        <p class="text-sm text-slate-500">
+            {{ c.box_count }} caja(s)
+            {% if c.arrival_date %} | 📅 {{ c.arrival_date.strftime('%d/%m/%Y') }}{% endif %}
+        </p>
+        {% if c.notes %}<p class="text-xs text-slate-400 mt-1 truncate">{{ c.notes }}</p>{% endif %}
+    </a>
+    {% endfor %}
+    {% if not containers %}
+    <div class="col-span-full text-center py-8 text-slate-400 bg-white rounded-xl border border-slate-200">
+        <div class="text-4xl mb-2">🚢</div>
+        No hay contenedores en esta orden
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function editOrder() {
+    openModal('Editar Orden', `<form method='post' action='/imports/{{ order.id }}/update' class='space-y-4'>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>PI NO *</label>
+            <input type='text' name='invoice_number' required value='{{ order.invoice_number }}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Proveedor</label>
+            <input type='text' name='supplier' value='{{ order.supplier or '' }}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div>
+            <label class='block text-sm font-medium text-slate-700 mb-1'>Fecha</label>
+            <input type='date' name='created_date' value='{{ order.created_date.strftime('%Y-%m-%d') if order.created_date else '' }}' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
+        </div>
+        <div class='flex justify-end gap-2'>
+            <button type='button' onclick='closeModal()' class='px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg'>Cancelar</button>
+            <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
+        </div>
+    </form>`);
+}
+</script>
+{% endblock %}

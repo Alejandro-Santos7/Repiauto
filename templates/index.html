@@ -1,52 +1,140 @@
 {% extends "base.html" %}
 
-{% block title %}Repiauto - Inicio{% endblock %}
+{% block title %}Repiauto - Dashboard{% endblock %}
 
 {% block content %}
-<div class="text-center py-12">
-    <h2 class="text-4xl font-bold text-gray-800 mb-4">Sistema de Gestión de Inventario</h2>
-    <p class="text-xl text-gray-600 mb-8">Cristalería Automotriz</p>
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-slate-800">Dashboard</h2>
+    <p class="text-slate-500">Resumen del sistema de inventario</p>
+</div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mt-8">
-        <a href="/products" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-3xl mb-2">📦</div>
-            <h3 class="font-bold text-lg">Productos</h3>
-            <p class="text-2xl font-bold text-amber-600">{{ stats.total_products }}</p>
-            <p class="text-gray-500 text-sm">Catálogo de vidrios</p>
-        </a>
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+    <a href="/products" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md hover:border-amber-300 transition">
+        <div class="text-2xl mb-1">📦</div>
+        <div class="text-2xl font-bold text-amber-600">{{ stats.total_products }}</div>
+        <div class="text-xs text-slate-500">Productos</div>
+    </a>
+    <a href="/imports" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md hover:border-amber-300 transition">
+        <div class="text-2xl mb-1">📄</div>
+        <div class="text-2xl font-bold text-blue-600">{{ stats.total_orders }}</div>
+        <div class="text-xs text-slate-500">Ordenes PI</div>
+    </a>
+    <a href="/imports" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md hover:border-amber-300 transition">
+        <div class="text-2xl mb-1">🚢</div>
+        <div class="text-2xl font-bold text-green-600">{{ stats.total_containers }}</div>
+        <div class="text-xs text-slate-500">Contenedores</div>
+    </a>
+    <a href="/inventory" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md hover:border-amber-300 transition">
+        <div class="text-2xl mb-1">📋</div>
+        <div class="text-2xl font-bold text-purple-600">{{ stats.total_inventory }}</div>
+        <div class="text-xs text-slate-500">Inventario</div>
+    </a>
+    <a href="/locations" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md hover:border-amber-300 transition">
+        <div class="text-2xl mb-1">🗺️</div>
+        <div class="text-2xl font-bold text-slate-600">{{ stats.total_boxes }}</div>
+        <div class="text-xs text-slate-500">Cajas totales</div>
+    </a>
+</div>
 
-        <a href="/orders-china" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-3xl mb-2">📄</div>
-            <h3 class="font-bold text-lg">Órdenes China</h3>
-            <p class="text-2xl font-bold text-amber-600">{{ stats.total_orders_china }}</p>
-            <p class="text-gray-500 text-sm">Facturas de proveedores</p>
-        </a>
-
-        <a href="/containers" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-3xl mb-2">🚢</div>
-            <h3 class="font-bold text-lg">Contenedores</h3>
-            <p class="text-2xl font-bold text-amber-600">{{ stats.total_containers }}</p>
-            <p class="text-gray-500 text-sm">Cajas recibidas</p>
-        </a>
-
-        <a href="/inventory" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-3xl mb-2">📋</div>
-            <h3 class="font-bold text-lg">Inventario</h3>
-            <p class="text-2xl font-bold text-amber-600">{{ stats.total_inventory }}</p>
-            <p class="text-gray-500 text-sm">Ubicaciones asignadas</p>
-        </a>
-
-        <a href="/locations" class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-3xl mb-2">🗺️</div>
-            <h3 class="font-bold text-lg">Ubicaciones</h3>
-            <p class="text-gray-500 text-sm">Mapa de almacenes</p>
-        </a>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 class="font-bold text-slate-800 mb-4">Estado de Ordenes</h3>
+        <div class="flex items-center gap-4 mb-4">
+            <div class="flex-1 bg-green-50 rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-green-700">{{ stats.open_orders }}</div>
+                <div class="text-xs text-green-600">Abiertas</div>
+            </div>
+            <div class="flex-1 bg-slate-50 rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-slate-500">{{ stats.closed_orders }}</div>
+                <div class="text-xs text-slate-400">Cerradas</div>
+            </div>
+        </div>
+        {% if stats.open_orders > 0 or stats.closed_orders > 0 %}
+        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+            {% set pct = (stats.open_orders / stats.total_orders * 100) if stats.total_orders > 0 else 0 %}
+            <div class="bg-green-500 h-full rounded-full" style="width:{{ '%.0f'|format(pct) }}%"></div>
+        </div>
+        {% endif %}
     </div>
 
-    <div class="mt-12 bg-blue-50 p-6 rounded-lg inline-block text-left">
-        <h3 class="font-bold text-lg mb-2">Leyenda de Ubicaciones</h3>
-        <p><strong>Almacén 1 (Racks):</strong> 1-P[1-2]-[LETRA]-[NIVEL] → Ej: 1-P2-A-3</p>
-        <p><strong>Almacén 2 (Cuadrícula):</strong> 2-[FILA]-[COL]-[NIVEL] → Ej: 2-B-05-4</p>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 class="font-bold text-slate-800 mb-4">Estado de Contenedores</h3>
+        <div class="flex items-center gap-2 mb-4">
+            <div class="flex-1 bg-yellow-50 rounded-lg p-3 text-center">
+                <div class="text-xl font-bold text-yellow-700">{{ stats.pending_containers }}</div>
+                <div class="text-xs text-yellow-600">Pending</div>
+            </div>
+            <div class="flex-1 bg-green-50 rounded-lg p-3 text-center">
+                <div class="text-xl font-bold text-green-700">{{ stats.arrived_containers }}</div>
+                <div class="text-xs text-green-600">Arrived</div>
+            </div>
+            <div class="flex-1 bg-blue-50 rounded-lg p-3 text-center">
+                <div class="text-xl font-bold text-blue-700">{{ stats.completed_containers }}</div>
+                <div class="text-xs text-blue-600">Completed</div>
+            </div>
+        </div>
+        {% if stats.total_containers > 0 %}
+        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex">
+            {% set p_pend = (stats.pending_containers / stats.total_containers * 100) if stats.total_containers > 0 else 0 %}
+            {% set p_arr = (stats.arrived_containers / stats.total_containers * 100) if stats.total_containers > 0 else 0 %}
+            {% set p_comp = (stats.completed_containers / stats.total_containers * 100) if stats.total_containers > 0 else 0 %}
+            {% if p_pend > 0 %}<div class="bg-yellow-500 h-full" style="width:{{ '%.0f'|format(p_pend) }}%"></div>{% endif %}
+            {% if p_arr > 0 %}<div class="bg-green-500 h-full" style="width:{{ '%.0f'|format(p_arr) }}%"></div>{% endif %}
+            {% if p_comp > 0 %}<div class="bg-blue-500 h-full" style="width:{{ '%.0f'|format(p_comp) }}%"></div>{% endif %}
+        </div>
+        {% endif %}
     </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-slate-800">Ordenes Recientes</h3>
+            <a href="/imports" class="text-blue-600 text-sm hover:text-blue-800">Ver todas</a>
+        </div>
+        {% if stats.recent_orders %}
+        <div class="space-y-2">
+            {% for o in stats.recent_orders %}
+            <a href="/imports/{{ o.id }}" class="flex justify-between items-center p-3 rounded-lg hover:bg-slate-50 transition">
+                <div>
+                    <span class="font-medium text-slate-800">{{ o.pi_number or o.invoice_number }}</span>
+                    {% if o.supplier %}<span class="text-slate-400 text-sm ml-2">{{ o.supplier }}</span>{% endif %}
+                </div>
+                <span class="text-xs px-2 py-1 rounded-full {% if o.status == 'open' %}bg-green-100 text-green-700{% else %}bg-slate-100 text-slate-500{% endif %}">{{ o.status }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-slate-400 text-center py-4">No hay ordenes registradas</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-slate-800">Contenedores Recientes</h3>
+            <a href="/imports" class="text-blue-600 text-sm hover:text-blue-800">Ver todos</a>
+        </div>
+        {% if stats.recent_containers %}
+        <div class="space-y-2">
+            {% for c in stats.recent_containers %}
+            <div class="flex justify-between items-center p-3 rounded-lg hover:bg-slate-50 transition">
+                <div>
+                    <span class="font-medium text-slate-800">{{ c.invoice_number }}</span>
+                    <span class="text-slate-400 text-sm ml-2">{{ c.order_china.pi_number or c.order_china.invoice_number if c.order_china else '?' }}</span>
+                </div>
+                <span class="text-xs px-2 py-1 rounded-full {% if c.status == 'arrived' %}bg-green-100 text-green-700{% elif c.status == 'pending' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">{{ c.status }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-slate-400 text-center py-4">No hay contenedores registrados</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-8 bg-blue-50 p-5 rounded-xl border border-blue-100">
+    <h3 class="font-bold text-slate-800 mb-2">Leyenda de Ubicaciones</h3>
+    <p class="text-sm text-slate-600"><strong>Almacen 1 (Racks):</strong> 1-P[1-2]-[LETRA]-[NIVEL] → Ej: 1-P2-A-3</p>
+    <p class="text-sm text-slate-600"><strong>Almacen 2 (Cuadricula):</strong> 2-[FILA]-[COL]-[NIVEL] → Ej: 2-B-05-4</p>
 </div>
 {% endblock %}

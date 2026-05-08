@@ -11,23 +11,26 @@
         .modal.active { display: flex; }
         .toast { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @media print {
+            header, .toast, .no-print { display: none !important; }
+            body { background: white !important; margin: 0 !important; padding: 0 !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
-    <header class="bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-lg">
+    <header class="bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-lg no-print">
         <div class="container mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <a href="/" class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                         <span class="text-2xl">📦</span>
-                    </div>
+                    </a>
                     <h1 class="text-2xl font-bold">Repiauto</h1>
                 </div>
                 <nav class="flex gap-2">
                     <a href="/" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if request.url.path == '/' %}bg-white/20{% endif %}">Dashboard</a>
                     <a href="/products" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/products' in request.url.path %}bg-white/20{% endif %}">Productos</a>
-                    <a href="/orders-china" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/orders-china' in request.url.path %}bg-white/20{% endif %}">Órdenes China</a>
-                    <a href="/containers" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/containers' in request.url.path %}bg-white/20{% endif %}">Contenedores</a>
+                    <a href="/imports" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/imports' in request.url.path %}bg-white/20{% endif %}">Importaciones</a>
                     <a href="/inventory" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/inventory' in request.url.path %}bg-white/20{% endif %}">Inventario</a>
                     <a href="/locations" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/locations' in request.url.path %}bg-white/20{% endif %}">Ubicaciones</a>
                 </nav>
@@ -35,11 +38,10 @@
         </div>
     </header>
 
-    <!-- Toast Messages -->
     {% set error = request.query_params.get('error') %}
     {% set success = request.query_params.get('success') %}
     {% if error %}
-    <div class="toast fixed top-4 right-4 z-50 bg-red-100 border border-red-300 text-red-800 px-6 py-3 rounded-lg shadow-lg max-w-sm">
+    <div class="toast fixed top-4 right-4 z-50 bg-red-100 border border-red-300 text-red-800 px-6 py-3 rounded-lg shadow-lg max-w-sm no-print">
         <div class="flex items-center gap-2">
             <span>❌</span>
             <span>{{ error }}</span>
@@ -48,7 +50,7 @@
     </div>
     {% endif %}
     {% if success %}
-    <div class="toast fixed top-4 right-4 z-50 bg-green-100 border border-green-300 text-green-800 px-6 py-3 rounded-lg shadow-lg max-w-sm">
+    <div class="toast fixed top-4 right-4 z-50 bg-green-100 border border-green-300 text-green-800 px-6 py-3 rounded-lg shadow-lg max-w-sm no-print">
         <div class="flex items-center gap-2">
             <span>✅</span>
             <span>{{ success }}</span>
