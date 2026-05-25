@@ -8,7 +8,11 @@
         <h2 class="text-3xl font-bold text-slate-800">Catálogo de Productos</h2>
         <p class="text-slate-500">Registra los productos que pueden llegar en los pedidos</p>
     </div>
-    <button onclick="openModal('Nuevo Producto', `<form method='post' action='/products' class='space-y-4'>
+    <div class="flex gap-2">
+        <button onclick="openImportModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+            📥 Importar Excel
+        </button>
+        <button onclick="openModal('Nuevo Producto', `<form method='post' action='/products' class='space-y-4'>
         <div>
             <label class='block text-sm font-medium text-slate-700 mb-1'>SKU USA</label>
             <input type='text' name='sku_usa' class='w-full px-3 py-2 border border-slate-300 rounded-lg'>
@@ -27,11 +31,26 @@
             <button type='submit' class='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'>Guardar</button>
         </div>
     </form>`)" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-    <span>➕</span> Nuevo Producto
-</button>
+            <span>➕</span> Nuevo Producto
+        </button>
+        <button onclick="confirmDeleteAll()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
+            🗑️ Eliminar Todo
+        </button>
+    </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+<div class="mb-4">
+    <input type="text" name="q" placeholder="Buscar por nombre, SKU USA o SKU China..."
+        class="w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+        hx-get="/products"
+        hx-trigger="keyup changed delay:350ms, search"
+        hx-target="#products-table"
+        hx-indicator="#products-search-spinner"
+        value="{{ query }}">
+    <div id="products-search-spinner" class="htmx-indicator text-sm text-slate-400 mt-1">Buscando...</div>
+</div>
+
+<div id="products-table" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
     <table class="min-w-full divide-y divide-slate-200">
         <thead class="bg-slate-50">
             <tr>
@@ -70,6 +89,47 @@
 </div>
 
 <script>
+function openImportModal() {
+    openModal('Importar Productos desde Excel', `
+        <div class="space-y-4">
+            <p class="text-sm text-slate-600">Sube un archivo Excel con las siguientes columnas:</p>
+            <div class="bg-slate-50 rounded-lg p-3 text-xs text-slate-600 font-mono">
+                <b>CODIGO_PRO</b> &mdash; SKU China del producto<br>
+                <b>nombre_pro</b> &mdash; Nombre del producto
+            </div>
+            <form hx-post="/products/import" hx-target="#modal-content" hx-encoding="multipart/form-data" class="space-y-4"
+                  hx-indicator="#import-btn-spinner">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Archivo Excel</label>
+                    <input type="file" name="file" accept=".xlsx,.xls" required
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+                        <svg id="import-btn-spinner" class="htmx-indicator animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    `);
+}
+
+function confirmDeleteAll() {
+    openModal('Confirmar Eliminación', `
+        <p class="text-slate-600 mb-4">¿Estás seguro de eliminar <b>todos</b> los productos del catálogo?</p>
+        <p class="text-sm text-red-600 mb-4">Esta acción no se puede deshacer.</p>
+        <form method="post" action="/products/delete-all" class="flex justify-end gap-2">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Eliminar Todo</button>
+        </form>
+    `);
+}
+
 function editProduct(id, skuUsa, skuChina, name) {
     openModal('Editar Producto', `<form method='post' action='/products/${id}/update' class='space-y-4'>
         <div>

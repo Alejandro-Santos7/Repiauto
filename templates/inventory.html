@@ -8,7 +8,18 @@
     <p class="text-slate-500">Cajas que han pasado a inventario</p>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+<div class="mb-4">
+    <input type="text" name="q" placeholder="Buscar por LPN, contenedor, SKU, nombre, ubicacion..."
+        class="w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+        hx-get="/inventory"
+        hx-trigger="keyup changed delay:350ms, search"
+        hx-target="#inventory-table"
+        hx-indicator="#search-spinner"
+        value="{{ query }}">
+    <div id="search-spinner" class="htmx-indicator text-sm text-slate-400 mt-1">Buscando...</div>
+</div>
+
+<div id="inventory-table" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
     <table class="min-w-full divide-y divide-slate-200">
         <thead class="bg-slate-50">
             <tr>

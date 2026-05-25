@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@source "../templates/**/*.html";
+
+.modal { display: none; }
+.modal.active { display: flex; }
+.toast { animation: slideIn 0.3s ease-out; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator,
+.htmx-indicator.htmx-request { opacity: 1; }
+@media print {
+    header, .toast, .no-print { display: none !important; }
+    body { background: white !important; margin: 0 !important; padding: 0 !important; }
+}

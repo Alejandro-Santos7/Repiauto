@@ -4,18 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Repiauto{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/tailwind.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        .modal { display: none; }
-        .modal.active { display: flex; }
-        .toast { animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @media print {
-            header, .toast, .no-print { display: none !important; }
-            body { background: white !important; margin: 0 !important; padding: 0 !important; }
-        }
-    </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
     <header class="bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-lg no-print">
@@ -28,11 +18,21 @@
                     <h1 class="text-2xl font-bold">Repiauto</h1>
                 </div>
                 <nav class="flex gap-2">
-                    <a href="/" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if request.url.path == '/' %}bg-white/20{% endif %}">Dashboard</a>
-                    <a href="/products" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/products' in request.url.path %}bg-white/20{% endif %}">Productos</a>
-                    <a href="/imports" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/imports' in request.url.path %}bg-white/20{% endif %}">Importaciones</a>
-                    <a href="/inventory" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/inventory' in request.url.path %}bg-white/20{% endif %}">Inventario</a>
-                    <a href="/locations" class="px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/locations' in request.url.path %}bg-white/20{% endif %}">Ubicaciones</a>
+                    <a href="/"
+                       hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-push-url="true"
+                       class="nav-link px-4 py-2 rounded-lg hover:bg-white/10 transition {% if request.url.path == '/' %}bg-white/20{% endif %}">Dashboard</a>
+                    <a href="/products"
+                       hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-push-url="true"
+                       class="nav-link px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/products' in request.url.path %}bg-white/20{% endif %}">Productos</a>
+                    <a href="/imports"
+                       hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-push-url="true"
+                       class="nav-link px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/imports' in request.url.path %}bg-white/20{% endif %}">Importaciones</a>
+                    <a href="/inventory"
+                       hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-push-url="true"
+                       class="nav-link px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/inventory' in request.url.path %}bg-white/20{% endif %}">Inventario</a>
+                    <a href="/locations"
+                       hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-push-url="true"
+                       class="nav-link px-4 py-2 rounded-lg hover:bg-white/10 transition {% if '/locations' in request.url.path %}bg-white/20{% endif %}">Ubicaciones</a>
                 </nav>
             </div>
         </div>
@@ -59,7 +59,7 @@
     </div>
     {% endif %}
 
-    <main class="container mx-auto px-4 py-6">
+    <main id="main-content" class="container mx-auto px-4 py-6">
         {% block content %}{% endblock %}
     </main>
 
@@ -79,6 +79,7 @@
         function openModal(title, content) {
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-content').innerHTML = content;
+            htmx.process(document.getElementById('modal-content'));
             document.getElementById('modal-template').classList.add('active');
         }
         function closeModal() {
@@ -90,6 +91,18 @@
         setTimeout(function() {
             document.querySelectorAll('.toast').forEach(function(el) { el.remove(); });
         }, 5000);
+        // Update nav highlight on boosted navigation
+        document.body.addEventListener('htmx:afterSettle', function(evt) {
+            var path = window.location.pathname;
+            document.querySelectorAll('.nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                if (href === '/' && path === '/') link.classList.add('bg-white/20');
+                else if (href !== '/' && path.startsWith(href)) link.classList.add('bg-white/20');
+                else link.classList.remove('bg-white/20');
+            });
+            // Dismiss residual toasts
+            document.querySelectorAll('.toast').forEach(function(el) { el.remove(); });
+        });
     </script>
 </body>
 </html>

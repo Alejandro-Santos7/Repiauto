@@ -6,186 +6,194 @@ Este documento define la arquitectura, lógica de negocio y plan de ejecución p
 Stack: FastAPI (Backend) + HTMX (Interactividad) + Tailwind CSS (CDN) + Neon (Postgres) + Render (Hosting).
 
 Justificación de SSR + HTMX:
-- Eficiencia de Memoria: Al utilizar Server-Side Rendering (SSR), el servidor entrega HTML listo para mostrar. HTMX permite actualizaciones parciales sin necesidad de frameworks pesados (React/Vue), lo cual es crítico para el hardware objetivo.
+- Eficiencia de Memoria: Al utilizar Server-Side Rendering (SSR), el servidor entrega HTML listo para mostrar. HTMX permite actualizaciones parciales sin necesidad de frameworks pesados (React/Vue).
 - Simplicidad de Estado: El estado reside en la base de datos, reduciendo la carga de procesamiento en el cliente.
 
 ---
-2. Flujo de Negocio (Workflow)
+2. Estructura del Proyecto
+
+```
+Repiauto/
+├── main.py              # Entry point: app=FastAPI(), exception handlers, include routers
+├── config.py            # DB URL, engine, SessionLocal, Base, init_db(), templates
+├── models.py            # 7 SQLAlchemy models (ProductCatalog, OrderChina, ShippingContainer, Box, BoxItem, Location, Inventory)
+├── database.py          # import models + trigger init_db()
+├── utils.py             # safe_int, safe_str, error_redirect, success_redirect, import progress logic
+├── routes/
+│   ├── __init__.py      # Re-exports all routers for clean import in main.py
+│   ├── dashboard.py     # GET / — Dashboard stats
+│   ├── products.py      # /products — CRUD, Excel import, delete-all, /products/search
+│   ├── imports.py       # /imports — Orders, containers, boxes, items, labels
+│   ├── inventory.py     # /inventory — List/search, assign location
+│   └── locations.py     # /locations — CRUD
+├── templates/           # Jinja2 templates (base, index, products, imports, inventory, locations, labels, error)
+├── .env                 # DATABASE_URL, secrets
+└── repiauto.db          # SQLite fallback (when no DATABASE_URL set)
+```
+
+Responsabilidades de cada módulo:
+- **config.py**: Configuración global: conexión a BD, engine, SessionLocal, Base, Jinja2Templates, logger. Define `init_db()` que crea tablas. NO importa models.
+- **models.py**: Todos los modelos SQLAlchemy. Importa `Base` de config.py.
+- **database.py**: Importa models.py (para registrar todos los modelos en Base.metadata) y ejecuta `init_db()`. Debe importarse antes de crear la app FastAPI.
+- **utils.py**: Funciones utilitarias puras y lógica de importación Excel con progreso. NO depende de FastAPI Request/Response directamente (usa RedirectResponse).
+- **routes/**: Cada archivo define un `APIRouter`. Importan modelos de models.py, sesiones de config.py, helpers de utils.py.
+- **main.py**: Entry point. Importa database (dispara init_db), crea FastAPI app, incluye todos los routers, registra exception handlers.
+
+Orden de imports (crítico para evitar circular imports):
+1. config.py (no imports de proyecto)
+2. models.py (importa config.Base)
+3. database.py (importa models, llama init_db)
+4. utils.py (importa config, models)
+5. routes/*.py (importan config, models, utils)
+6. main.py (importa database, routes)
+
+---
+3. Convenciones de Código
+
+- **Todo es POST excepto GETs**: Las acciones que modifican datos usan POST. Los GETs solo leen.
+- **Manejo de sesiones**: Cada endpoint abre `SessionLocal()`, usa try/finally para cerrar.
+- **Redirecciones**: Usar `success_redirect(url, msg)` y `error_redirect(url, msg)` de utils.py. Retornan RedirectResponse 303 con query params.
+- **Nombrado de rutas**: Las URLs mantienen el formato REST existente: `/imports/{order_id}/containers/{container_id}/boxes/{box_id}/items`.
+- **Form inputs**: Usar `name="q"` para parámetros de búsqueda que mapean al parámetro `q: str = ""` del backend.
+- **HTMX en modales**: Siempre llamar `htmx.process(element)` después de inyectar HTML dinámico con `innerHTML`.
+
+---
+4. Flujo de Negocio (Workflow)
 
 Paso 1: Orden China (orders_china)
 - Se crea una orden con invoice_number (factura/packing list del proveedor chino) y supplier
-- Una orden puede tener muchos contenedores
+- Campos adicionales: pi_number (opcional), created_date, status (open/closed)
 
 Paso 2: Contenedor (shipping_containers)
-- Se crea un contenedor vinculado a una orden china
-- Contiene: invoice_number (ID del packing list digital), bill_number (Bill of Lading)
-- Estados: pending (en tránsito), arrived (llegó), completed (procesado)
-- El contenedor tiene cajas directamente (sin capa intermedia de "pedido")
+- Vinculado a una orden china
+- Contiene: invoice_number, ref_number, bill_number, arrival_date, notes
+- Estados: pending → arrived → completed (reversible: completed → arrived)
 
 Paso 3: Cajas (boxes)
-- Se crean cajas dentro del contenedor
-- LPN se genera automáticamente: [invoice_last4]-[box_number:02d]
-- Ejemplo: 0989-01 (Factura 0989, Caja 01)
-- Estados: pending (en contenedor), to_locate (enviada a inventario), located (ubicada)
+- Creadas dentro del contenedor
+- LPN: [invoice_last4]-[box_number:02d] (ej: 0989-01)
+- Estados: pending → closed (reversible) → to_locate → located
 
 Paso 4: Items (box_items)
 - Se agregan productos a cada caja (product_id + cantidad)
-- El inventario se vincula a la caja, no al producto individual
+- Búsqueda de productos vía HTMX: /products/search?q=...
 
 Paso 5: Finalización
-- Al finalizar, el contenedor pasa a "completed" y las cajas cambian a "to_locate"
-- Se crea automáticamente un registro en Inventory por cada caja con items
+- Contenedor → completed, cajas con items → to_locate
+- Se crea Inventory por cada caja con items
 
 Paso 6: Asignación de Ubicación
-- Se asigna una ubicación a cada caja en inventario
-- La caja pasa a "located" y el inventario a "stored"
+- Inventory recibe location_id, box → located, inventory → stored
 
 ---
-3. Roles de Usuario
-A. Oficinista (Administración y Entrada)
-- Crear Ordenes China: Registro de facturas de proveedores
-- Crear Contenedores: Recepción de mercancía
-- Gestión de Cajas: Crear cajas, agregar productos
-- Finalizar Contenedores: Enviar cajas al inventario
+5. Modelos de Base de Datos
 
-B. Logística (Operaciones de Almacén)
-- Asignar Ubicaciones: Ubicar cajas en racks
-- Gestión de Inventario: Ver estado y ubicación de productos
+```
+ProductCatalog (product_catalog)
+├── id, sku_usa (indexed), sku_china (indexed, nullable), name, created_at
 
----
-4. Lógica de Identificación y Ubicación
-Identificación de Cajas (LPN)
-Formato: [FACTURA_ÚLTIMOS_4]-[NRO_CAJA]
-- Ejemplo: 0989-08 (Factura 0989, Caja 08).
+OrderChina (orders_china)
+├── id, invoice_number (unique, indexed), pi_number, supplier
+├── status (open/closed), created_date, created_at
 
-Nomenclatura de Ubicaciones
-- Almacén 1 (Racks): 1-P[1-2]-[LETRA]-[NIVEL]
-  - Ejemplo: 1-P2-A-3 (Almacén 1, Pasillo 2, Rack A, Nivel 3).
-- Almacén 2 (Cuadrícula): 2-[FILA]-[COL]-[NIVEL]
-  - Ejemplo: 2-B-05-4 (Almacén 2, Fila B, Columna 05, Nivel 4).
+ShippingContainer (shipping_containers)
+├── id, invoice_number (unique, indexed), ref_number, bill_number
+├── orders_china_id (FK), arrival_date, status (pending/arrived/completed)
+├── notes, created_date, created_at
 
----
-5. Esquema de Base de Datos (SQLAlchemy)
+Box (boxes)
+├── id, container_id (FK), box_number, lpn_code (unique)
+├── status (pending/closed/to_locate/located), created_at
 
-Entidades Principales:
+BoxItem (box_items)
+├── id, box_id (FK), product_id (FK), quantity
 
-```python
-class ProductCatalog(Base):
-    __tablename__ = "product_catalog"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    sku_usa: Mapped[str] = mapped_column(String(50), index=True)      # SKU comercial USA
-    sku_china: Mapped[Optional[str]] = mapped_column(String(50), index=True)
-    name: Mapped[str] = mapped_column(String(200))                    # Descripción del vidrio
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+Location (locations)
+├── id, full_code (unique, indexed), warehouse_id, capacity, description, created_at
 
-class OrderChina(Base):
-    __tablename__ = "orders_china"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    invoice_number: Mapped[str] = mapped_column(String(100), unique=True, index=True)  # Factura China
-    supplier: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    containers = relationship("ShippingContainer", back_populates="order_china")
-
-class ShippingContainer(Base):
-    __tablename__ = "shipping_containers"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    invoice_number: Mapped[str] = mapped_column(String(100), unique=True, index=True)  # ID packing list
-    bill_number: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)   # Bill of Lading
-    orders_china_id: Mapped[int] = mapped_column(ForeignKey("orders_china.id", ondelete="RESTRICT"))
-    arrival_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending/arrived/completed
-    notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    boxes = relationship("Box", back_populates="container", cascade="all, delete-orphan")
-
-class Box(Base):
-    __tablename__ = "boxes"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    container_id: Mapped[int] = mapped_column(ForeignKey("shipping_containers.id", ondelete="CASCADE"))
-    box_number: Mapped[int] = mapped_column(Integer)
-    lpn_code: Mapped[str] = mapped_column(String(50), unique=True)  # Formato: FACTURA-CAJA
-    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending/to_locate/located
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    items = relationship("BoxItem", back_populates="box", cascade="all, delete-orphan")
-    inventory = relationship("Inventory", back_populates="box", uselist=False, cascade="all, delete-orphan")
-
-class BoxItem(Base):
-    __tablename__ = "box_items"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    box_id: Mapped[int] = mapped_column(ForeignKey("boxes.id", ondelete="CASCADE"))
-    product_id: Mapped[int] = mapped_column(ForeignKey("product_catalog.id", ondelete="CASCADE"))
-    quantity: Mapped[int] = mapped_column(Integer, default=1)
-
-class Location(Base):
-    __tablename__ = "locations"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    full_code: Mapped[str] = mapped_column(String(50), unique=True, index=True)  # 1-P2-A-3
-    warehouse_id: Mapped[int] = mapped_column(Integer, default=1)
-    capacity: Mapped[int] = mapped_column(Integer, default=1)
-    description: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    inventories = relationship("Inventory", back_populates="location")
-
-class Inventory(Base):
-    __tablename__ = "inventory"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    box_id: Mapped[int] = mapped_column(ForeignKey("boxes.id", ondelete="CASCADE"), unique=True)
-    location_id: Mapped[Optional[int]] = mapped_column(ForeignKey("locations.id", ondelete="SET NULL"), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default="pending_location")  # pending_location/stored
-    moved_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+Inventory (inventory)
+├── id, box_id (FK, unique), location_id (FK, nullable)
+├── status (pending_location/stored), moved_at
 ```
 
 Relaciones:
-- OrderChina 1 → N ShippingContainer
-- ShippingContainer 1 → N Box
-- Box 1 → N BoxItem
+- OrderChina 1 → N ShippingContainer (cascade delete-orphan)
+- ShippingContainer 1 → N Box (cascade delete-orphan)
+- Box 1 → N BoxItem (cascade delete-orphan)
 - BoxItem N → 1 ProductCatalog
-- Box 1 → 1 Inventory
-- Location 1 → N Inventory
+- Box 1 → 1 Inventory (cascade delete-orphan)
+- Location 1 → N Inventory (SET NULL on delete)
 
 ---
 6. Rutas (Endpoints)
 
-| URL | Método | Descripción |
-|-----|--------|-------------|
-| / | GET | Dashboard con estadísticas |
-| /products | GET/POST | CRUD productos |
-| /orders-china | GET/POST | CRUD órdenes China |
-| /orders-china/{id}/update | POST | Actualizar orden |
-| /orders-china/{id}/delete | POST | Eliminar orden |
-| /containers | GET/POST | Listar/crear contenedores |
-| /containers/{id} | GET | Detalle con cajas e items |
-| /containers/{id}/update | POST | Actualizar contenedor |
-| /containers/{id}/status | POST | Cambiar estado (pending/arrived/completed) |
-| /containers/{id}/delete | POST | Eliminar contenedor |
-| /containers/{id}/boxes | POST | Crear caja |
-| /containers/{id}/boxes/{box_id}/update | POST | Editar número de caja |
-| /containers/{id}/boxes/{box_id}/delete | POST | Eliminar caja |
-| /containers/{id}/boxes/{box_id}/items | POST | Agregar item a caja |
-| /containers/{id}/boxes/{box_id}/items/{item_id}/delete | POST | Eliminar item |
-| /containers/{id}/finalize | POST | Enviar cajas a inventario |
-| /inventory | GET | Listar inventario |
-| /inventory/{id}/assign | POST | Asignar ubicación |
-| /locations | GET/POST | CRUD ubicaciones |
+| URL | Método | Archivo | Descripción |
+|-----|--------|---------|-------------|
+| / | GET | dashboard.py | Dashboard con estadísticas |
+| /products | GET | products.py | Listar productos |
+| /products | POST | products.py | Crear producto |
+| /products/{id}/update | POST | products.py | Actualizar producto |
+| /products/{id}/delete | POST | products.py | Eliminar producto |
+| /products/import | POST | products.py | Importar Excel (con barra progreso) |
+| /products/import/progress/{task_id} | GET | products.py | Polling de progreso import |
+| /products/delete-all | POST | products.py | Eliminar todos los productos |
+| /products/search | GET | products.py | Búsqueda HTMX (q=) |
+| /imports | GET | imports.py | Listar órdenes |
+| /imports | POST | imports.py | Crear orden |
+| /imports/{order_id} | GET | imports.py | Detalle orden + contenedores |
+| /imports/{order_id}/update | POST | imports.py | Actualizar orden |
+| /imports/{order_id}/close | POST | imports.py | Cerrar orden |
+| /imports/{order_id}/open | POST | imports.py | Reabrir orden |
+| /imports/{order_id}/delete | POST | imports.py | Eliminar orden |
+| /imports/{order_id}/containers | POST | imports.py | Crear contenedor |
+| /imports/{order_id}/containers/{id} | GET | imports.py | Detalle contenedor + cajas |
+| /imports/{order_id}/containers/{id}/update | POST | imports.py | Actualizar contenedor |
+| /imports/{order_id}/containers/{id}/status | POST | imports.py | Cambiar estado |
+| /imports/{order_id}/containers/{id}/close | POST | imports.py | Cerrar contenedor |
+| /imports/{order_id}/containers/{id}/open | POST | imports.py | Reabrir contenedor |
+| /imports/{order_id}/containers/{id}/delete | POST | imports.py | Eliminar contenedor |
+| /imports/{order_id}/containers/{id}/boxes | POST | imports.py | Crear caja |
+| /imports/{order_id}/containers/{id}/boxes/{box_id}/update | POST | imports.py | Editar caja |
+| /imports/{order_id}/containers/{id}/boxes/{box_id}/close | POST | imports.py | Cerrar caja |
+| /imports/{order_id}/containers/{id}/boxes/{box_id}/open | POST | imports.py | Reabrir caja |
+| /imports/{order_id}/containers/{id}/boxes/{box_id}/delete | POST | imports.py | Eliminar caja |
+| /imports/{order_id}/containers/{id}/boxes/{box_id}/items | POST | imports.py | Agregar item |
+| /imports/{order_id}/containers/{id}/boxes/{box_id}/items/{item_id}/delete | POST | imports.py | Eliminar item |
+| /imports/{order_id}/containers/{id}/finalize | POST | imports.py | Finalizar → inventario |
+| /imports/{order_id}/containers/{id}/print-labels | GET | imports.py | Imprimir etiquetas |
+| /imports/{order_id}/containers/{id}/boxes/{box_id}/print-label | GET | imports.py | Imprimir etiqueta caja |
+| /inventory | GET | inventory.py | Listar inventario (q= búsqueda) |
+| /inventory/{id}/assign | POST | inventory.py | Asignar ubicación |
+| /locations | GET | locations.py | Listar ubicaciones |
+| /locations | POST | locations.py | Crear ubicación |
+| /locations/{id}/delete | POST | locations.py | Eliminar ubicación |
 
 ---
-7. Hitos de Desarrollo (Roadmap)
+7. Debugging y Errores Comunes
+
+- **Búsqueda no funciona**: Verificar que el input usa `name="q"` (no `name="search"`). El backend espera `q: str = ""`.
+- **Modal no procesa HTMX**: El contenido inyectado con innerHTML requiere `htmx.process(container)` después de la inyección.
+- **Templates no se actualizan**: uvicorn --reload solo recarga con cambios en .py. Tocar main.py (ej: añadir/borrar comentario) fuerza reload de templates.
+- **Indicador HTMX no aparece**: CSS usa `opacity` (no `display`): `.htmx-indicator { opacity: 0 }` y `.htmx-request .htmx-indicator, .htmx-indicator.htmx-request { opacity: 1 }`.
+
+---
+8. Hitos de Desarrollo (Roadmap)
 Fase | Nombre | Entregables
-1 | Importación | Setup de FastAPI, modelos, script de carga masiva de Excel (Pandas).
+1 | Importación | Setup FastAPI, modelos, carga masiva Excel con barra progreso.
 2 | Mapa de Ubicaciones | Visualización y gestión de Racks y Cuadrículas.
-3 | Movimientos HTMX | Interfaz reactiva para traslados y desglose de cajas.
-4 | PDFs y Etiquetas | Generación de reportes de inventario y etiquetas de cajas/ubicaciones.
+3 | Movimientos HTMX | Búsqueda reactiva en inventario y asignación de productos a cajas.
+4 | PDFs y Etiquetas | Generación de reportes y etiquetas de cajas/ubicaciones.
 
 ---
-8. Guía de Inicio
+9. Guía de Inicio
 1. Entorno Virtual:
-   python -m venv venv
-   .\venv\Scripts\activate
+   python -m venv .venv
+   .\.venv\Scripts\activate
 
 2. Variables de Entorno (.env):
    DATABASE_URL=postgresql://neondb_owner:TU_PASSWORD@ep-xxx.eu-central-1.aws.neon.tech/repiauto?sslmode=require
 
-3. Instalación de Dependencias:
+3. Instalación:
    pip install fastapi uvicorn sqlalchemy psycopg2-binary pandas openpyxl jinja2 python-multipart python-dotenv
 
 4. Ejecución:
