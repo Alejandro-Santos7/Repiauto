@@ -1,0 +1,35 @@
+{# _glass_search_results.html — Resultados de busqueda de vidrios en dashboard #}
+{% if not query %}
+<div class="text-center py-4 text-slate-400 text-sm">Busca un vidrio por nombre para ver donde esta</div>
+{% elif results %}
+<div class="space-y-3">
+    {% for prod in results %}
+    <div class="bg-white border border-slate-200 rounded-xl p-3">
+        <div class="flex items-start justify-between mb-2">
+            <div>
+                <p class="text-sm font-semibold text-slate-800">{{ prod.name }}</p>
+                <code class="text-xs text-slate-400">{{ prod.sku_usa }}</code>
+            </div>
+            <span class="text-xs bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">{{ prod.total_qty }} en total</span>
+        </div>
+        <div class="space-y-1">
+            {% for loc in prod.locations %}
+            <a href="/warehouse/1/rack/{{ loc.location_id }}" class="flex items-center justify-between p-2 rounded-lg hover:bg-blue-50 transition text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">📍</span>
+                    <span class="font-medium text-slate-700">{{ loc.display_name }}</span>
+                    <code class="text-slate-400">{{ loc.full_code }}</code>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">LPN {{ loc.box_lpn }}</span>
+                    <span class="font-semibold text-slate-700">x{{ loc.qty }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-4 text-slate-400 text-sm">No se encontro "{{ query }}"</div>
+{% endif %}

@@ -10,10 +10,22 @@ from utils import safe_str, safe_int
 router = APIRouter()
 
 
-def _rack_data(location):
-    used = location.inventories if hasattr(location, 'inventories') and location.inventories else 0
-    if isinstance(used, list):
-        used = len(used)
+def _rack_data(location, db=None):
+    used = 0
+    if hasattr(location, 'inventories') and location.inventories is not None:
+        if isinstance(location.inventories, list):
+            used = len(location.inventories)
+        else:
+            used = 1
+    glass_types = 0
+    if db and used > 0:
+        box_ids = []
+        invs = location.inventories if isinstance(location.inventories, list) else [location.inventories]
+        for inv in invs:
+            if inv and inv.box_id:
+                box_ids.append(inv.box_id)
+        if box_ids:
+            glass_types = db.query(BoxItem.product_id).filter(BoxItem.box_id.in_(box_ids)).distinct().count()
     return {
         "id": location.id,
         "full_code": location.full_code,
@@ -21,6 +33,7 @@ def _rack_data(location):
         "display_name": location.custom_name or location.full_code,
         "capacity": location.capacity,
         "used_capacity": used,
+        "glass_types": glass_types,
     }
 
 
@@ -60,7 +73,7 @@ async def warehouse_1(request: Request):
                 Location.warehouse_id == 1,
                 Location.full_code.like("%1-P1-%")
             ).all()
-            racks = [_rack_data(loc) for loc in locs]
+            racks = [_rack_data(loc, db) for loc in locs]
         finally:
             db.close()
     except Exception as e:
@@ -105,13 +118,56 @@ async def warehouse_1_floor(request: Request, floor_num: int):
                 Location.warehouse_id == 1,
                 Location.full_code.like(pattern)
             ).all()
-            racks = [_rack_data(loc) for loc in locs]
+            racks = [_rack_data(loc, db) for loc in locs]
         finally:
             db.close()
     except Exception as e:
         logger.error(f"Floor {floor_num} error: {e}")
         racks = []
-    return templates.TemplateResponse("warehouse/_racks_grid.html", {"request": request, "racks": racks})
+    return templates.TemplateResponse("warehouse/_racks_grid.html", {"request": request, "racks": racks, "floor_num": floor_num})
+
+
+@router.get("/warehouse/1/floor/{floor_num}/new-form", response_class=HTMLResponse)
+async def rack_new_form(request: Request, floor_num: int):
+    return templates.TemplateResponse("warehouse/_rack_new_form.html", {"request": request, "floor_num": floor_num})
+
+
+@router.post("/warehouse/1/floor/{floor_num}/create", response_class=HTMLResponse)
+async def rack_create(request: Request, floor_num: int, full_code: str = Form(None), custom_name: str = Form(None), capacity: int = Form(None)):
+    fc = safe_str(full_code)
+    cn = safe_str(custom_name)
+    cap = safe_int(capacity, 4)
+    if not fc:
+        return HTMLResponse("<p class='text-red-500 p-4'>El codigo es obligatorio</p>")
+    try:
+        db = SessionLocal()
+        try:
+            existing = db.query(Location).filter(Location.full_code == fc).first()
+            if existing:
+                return HTMLResponse("<p class='text-red-500 p-4'>Ya existe una ubicacion con ese codigo</p>")
+            db.add(Location(full_code=fc, custom_name=cn or None, warehouse_id=1, capacity=cap))
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Create rack error: {e}")
+        return HTMLResponse("<p class='text-red-500 p-4'>Error al crear rack</p>")
+
+    try:
+        db = SessionLocal()
+        try:
+            pattern = f"%1-P{floor_num}-%"
+            locs = db.query(Location).filter(
+                Location.warehouse_id == 1,
+                Location.full_code.like(pattern)
+            ).all()
+            racks = [_rack_data(loc, db) for loc in locs]
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Refresh floor {floor_num} error: {e}")
+        racks = []
+    return templates.TemplateResponse("warehouse/_racks_grid.html", {"request": request, "racks": racks, "floor_num": floor_num})
 
 
 @router.get("/warehouse/1/rack/{location_id}", response_class=HTMLResponse)
@@ -361,6 +417,7 @@ async def box_contents(request: Request, box_id: int):
             items = []
             for item in box.items:
                 items.append({
+                    "id": item.id,
                     "sku_usa": item.product.sku_usa,
                     "name": item.product.name,
                     "quantity": item.quantity,
@@ -432,3 +489,43 @@ async def assign_inventory(request: Request, inventory_id: int, location_id: int
         logger.error(f"Assign inventory error: {e}")
         return HTMLResponse(f"<p class='text-red-500 p-4'>Error al asignar</p>")
     return await unassigned_items(request)
+
+
+@router.get("/warehouse/search-glass", response_class=HTMLResponse)
+async def search_glass(request: Request, q: str = ""):
+    q = safe_str(q)
+    results = []
+    if q:
+        try:
+            db = SessionLocal()
+            try:
+                prods = db.query(ProductCatalog).filter(ProductCatalog.name.ilike(f"%{q}%")).limit(8).all()
+                for prod in prods:
+                    items = db.query(BoxItem).options(
+                        joinedload(BoxItem.box).joinedload(Box.inventory).joinedload(Inventory.location)
+                    ).filter(BoxItem.product_id == prod.id).all()
+                    locations = []
+                    total = 0
+                    for item in items:
+                        if item.box and item.box.inventory and item.box.inventory.location:
+                            loc = item.box.inventory.location
+                            locations.append({
+                                "location_id": loc.id,
+                                "display_name": loc.custom_name or loc.full_code,
+                                "full_code": loc.full_code,
+                                "box_lpn": item.box.lpn_code,
+                                "qty": item.quantity,
+                            })
+                            total += item.quantity
+                    if locations:
+                        results.append({
+                            "name": prod.name,
+                            "sku_usa": prod.sku_usa,
+                            "total_qty": total,
+                            "locations": locations,
+                        })
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Search glass error: {e}")
+    return templates.TemplateResponse("warehouse/_glass_search_results.html", {"request": request, "query": q, "results": results})

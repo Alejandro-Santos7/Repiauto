@@ -6,12 +6,6 @@
                 <h4 class="font-bold text-slate-800">{{ rack.display_name }}</h4>
                 <code class="text-xs text-slate-500">{{ rack.full_code }}</code>
             </div>
-            <span class="text-xs px-2 py-1 rounded-full font-medium
-                {% if rack.used_capacity >= rack.capacity %}bg-red-100 text-red-700
-                {% elif rack.used_capacity >= rack.capacity * 0.7 %}bg-amber-100 text-amber-700
-                {% else %}bg-emerald-100 text-emerald-700{% endif %}">
-                {{ rack.used_capacity }}/{{ rack.capacity }}
-            </span>
         </div>
 
         <div class="space-y-2">
@@ -53,8 +47,8 @@
                 <div class="flex items-center justify-between p-3 bg-white cursor-pointer hover:bg-slate-50 transition"
                      onclick="toggleGlass('glass-{{ g.id }}')">
                     <div class="min-w-0 flex-1">
-                        <code class="text-sm font-bold text-slate-800">{{ g.sku_usa }}</code>
-                        <p class="text-xs text-slate-500 truncate">{{ g.name }}</p>
+                        <p class="text-sm font-semibold text-slate-800 truncate">{{ g.name }}</p>
+                        <code class="text-xs text-slate-400">{{ g.sku_usa }}</code>
                     </div>
                     <div class="flex items-center gap-2 ml-2">
                         <span class="text-sm font-semibold bg-slate-100 px-2 py-0.5 rounded-full text-slate-700">{{ g.quantity }}</span>

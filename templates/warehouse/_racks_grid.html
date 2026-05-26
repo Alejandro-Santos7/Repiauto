@@ -15,28 +15,30 @@
                     stroke="rgb(147,197,253)" stroke-width="1.5"/>
             </svg>
         </div>
-
-        <p class="text-center text-xs font-semibold text-slate-700 truncate mb-1">{{ rack.display_name }}</p>
-
-        <div class="flex items-center gap-1.5">
-            <div class="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                {% set cap_pct = (rack.used_capacity / rack.capacity * 100) if rack.capacity > 0 else 0 %}
-                <div class="h-full rounded-full transition-all
-                    {% if cap_pct >= 80 %}bg-red-400
-                    {% elif cap_pct >= 50 %}bg-amber-400
-                    {% elif cap_pct > 0 %}bg-emerald-400
-                    {% else %}bg-transparent{% endif %}"
-                    style="width: {{ cap_pct }}%"></div>
-            </div>
-            <span class="text-xs text-slate-400 tabular-nums">{{ rack.used_capacity }}/{{ rack.capacity }}</span>
-        </div>
+        <p class="text-center text-xs font-semibold text-slate-700 truncate">{{ rack.display_name }}</p>
+        {% if rack.glass_types > 0 %}
+        <p class="text-center text-xs text-slate-400">{{ rack.glass_types }} tipo(s)</p>
+        {% endif %}
     </div>
     {% endfor %}
+
+    <!-- Boton agregar rack -->
+    <button class="border-2 border-dashed border-slate-300 rounded-xl p-3 flex flex-col items-center justify-center gap-1 hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer min-h-[140px]"
+            hx-get="/warehouse/1/floor/{{ floor_num|default(1) }}/new-form" hx-target="#side-panel-body" hx-swap="innerHTML"
+            onclick="openPanel()">
+        <svg class="w-6 h-6 text-slate-300 group-hover:text-blue-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-xs text-slate-400 font-medium">Agregar Rack</span>
+    </button>
 </div>
 {% else %}
-<div class="text-center py-16 text-slate-400">
+<div class="text-center py-12 text-slate-400">
     <div class="text-5xl mb-3">📦</div>
     <p>No hay racks registrados en este piso</p>
-    <p class="text-sm mt-1">Agrega ubicaciones en <a href="/locations" class="text-blue-500 hover:underline">Ubicaciones</a></p>
+    <button class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
+            hx-get="/warehouse/1/floor/{{ floor_num|default(1) }}/new-form" hx-target="#side-panel-body" hx-swap="innerHTML"
+            onclick="openPanel()">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Agregar primer Rack
+    </button>
 </div>
 {% endif %}
