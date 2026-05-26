@@ -1,0 +1,37 @@
+{# _cell_detail.html — Detalle de celda (4 niveles) en panel lateral #}
+<div class="space-y-4">
+    <div class="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-4 border border-emerald-100 text-center">
+        <div class="text-2xl mb-1">📦</div>
+        <code class="text-lg font-bold text-emerald-800">Celda {{ row }}-{{ '%02d' % (col|int) }}</code>
+        <p class="text-xs text-emerald-600 mt-0.5">Almacen 2 &middot; 4 niveles</p>
+    </div>
+
+    <h4 class="font-semibold text-sm text-slate-700 flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        Niveles
+    </h4>
+    <div class="space-y-2">
+        {% for level in levels %}
+        <div class="rounded-xl border-2 transition {% if level.box %}border-blue-200 bg-blue-50/50{% else %}border-slate-100 bg-white{% endif %}">
+            <div class="flex items-center justify-between p-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold
+                        {% if level.box %}bg-blue-500 text-white{% else %}bg-slate-100 text-slate-400{% endif %}">
+                        {{ level.num }}
+                    </span>
+                    <span class="text-sm font-medium text-slate-600">Nivel {{ level.num }}</span>
+                </div>
+                {% if level.box %}
+                <code class="text-xs bg-white border border-blue-200 px-3 py-1.5 rounded-lg font-bold text-blue-600 cursor-pointer hover:bg-blue-100 transition"
+                      hx-get="/warehouse/2/box/{{ level.box.id }}" hx-target="#side-panel-body" hx-swap="innerHTML"
+                      onclick="showBackBtn('box-{{ level.box.id }}')">
+                    {{ level.box.lpn_code }}
+                </code>
+                {% else %}
+                <span class="text-xs text-slate-300 italic pr-1">Vacio</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>

@@ -8,6 +8,60 @@
     <p class="text-slate-500">Resumen del sistema de inventario</p>
 </div>
 
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Almacen 1 -->
+    <a href="/warehouse/1" class="warehouse-dash-card group bg-white rounded-xl shadow-sm border-2 border-slate-200 p-6 hover:shadow-lg hover:border-blue-400 hover:-translate-y-1 transition-all cursor-pointer">
+        <div class="flex items-center gap-5">
+            <div class="flex-shrink-0">
+                <svg viewBox="49.992 35.071 20.0184 25.0271" class="w-28 h-28 transition-transform group-hover:scale-110" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 50.167 60.098 L 49.992 43.947 L 60.081 35.071 L 69.96 44.532 C 69.96 44.532 70.093 59.837 69.927 59.908 C 69.762 59.979 50.164 60.103 50.167 60.098 Z"
+                        fill="rgba(59,130,246,0.2)" stroke="rgb(59,130,246)" stroke-width="0.5"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-xl font-bold text-blue-700 group-hover:text-blue-800">Almacen 1</h3>
+                <p class="text-sm text-slate-500">Racks (Piso 1 y 2)</p>
+                <div class="flex gap-4 mt-3">
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-blue-600">{{ stats.located_boxes or 0 }}</div>
+                        <div class="text-xs text-slate-400">Cajas ubicadas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-blue-600">{{ stats.pending_inventory or 0 }}</div>
+                        <div class="text-xs text-slate-400">Por ubicar</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </a>
+
+    <!-- Almacen 2 -->
+    <a href="/warehouse/2" class="warehouse-dash-card group bg-white rounded-xl shadow-sm border-2 border-slate-200 p-6 hover:shadow-lg hover:border-green-400 hover:-translate-y-1 transition-all cursor-pointer">
+        <div class="flex items-center gap-5">
+            <div class="flex-shrink-0">
+                <svg viewBox="49.992 35.071 20.0184 25.0271" class="w-28 h-28 transition-transform group-hover:scale-110" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 50.167 60.098 L 49.992 43.947 L 60.081 35.071 L 69.96 44.532 C 69.96 44.532 70.093 59.837 69.927 59.908 C 69.762 59.979 50.164 60.103 50.167 60.098 Z"
+                        fill="rgba(34,197,94,0.2)" stroke="rgb(34,197,94)" stroke-width="0.5"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-xl font-bold text-green-700 group-hover:text-green-800">Almacen 2</h3>
+                <p class="text-sm text-slate-500">Cuadricula (A-R x 1-8)</p>
+                <div class="flex gap-4 mt-3">
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-green-600">{{ stats.located_boxes or 0 }}</div>
+                        <div class="text-xs text-slate-400">Cajas ubicadas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-green-600">{{ stats.pending_inventory or 0 }}</div>
+                        <div class="text-xs text-slate-400">Por ubicar</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </a>
+</div>
+
 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
     <a href="/products" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md hover:border-amber-300 transition">
         <div class="text-2xl mb-1">📦</div>

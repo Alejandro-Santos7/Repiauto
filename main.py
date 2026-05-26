@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 import database  # triggers init_db() after all models are imported
 from config import templates
-from routes import dashboard_router, products_router, imports_router, inventory_router, locations_router
+from routes import dashboard_router, products_router, imports_router, inventory_router, locations_router, warehouse_router
 
 logger = logging.getLogger("repiauto")
 
@@ -30,6 +30,7 @@ app.include_router(products_router)
 app.include_router(imports_router)
 app.include_router(inventory_router)
 app.include_router(locations_router)
+app.include_router(warehouse_router)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

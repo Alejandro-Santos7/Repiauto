@@ -1,0 +1,46 @@
+{# _unassigned.html — Vidrios sin ubicar #}
+<div class="space-y-4">
+    <div class="bg-amber-50 rounded-lg p-3 text-center">
+        <h4 class="font-semibold text-amber-800">📋 Vidrios sin ubicar</h4>
+        <p class="text-xs text-amber-600">{{ items|length }} caja(s) pendientes de ubicación</p>
+    </div>
+
+    {% if items %}
+    <div class="space-y-3">
+        {% for inv in items %}
+        <div class="border border-amber-200 rounded-lg overflow-hidden">
+            <div class="p-3 bg-amber-50/50">
+                <div class="flex justify-between items-center">
+                    <code class="text-sm font-bold text-amber-800">{{ inv.box_lpn }}</code>
+                    <span class="text-xs text-amber-600">Contenedor: {{ inv.container_invoice }}</span>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1">
+                    {% for sku, qty in inv.products %}
+                    <span class="text-xs bg-white border border-amber-200 px-2 py-0.5 rounded text-amber-700">
+                        {{ sku }} ×{{ qty }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="p-2 bg-white border-t border-amber-200">
+                <div class="flex gap-2">
+                    <select id="loc-select-{{ inv.id }}" class="flex-1 px-2 py-1 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Seleccionar ubicación...</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.id }}">{{ loc.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button hx-post="/warehouse/unassigned/{{ inv.id }}/assign" hx-include="#loc-select-{{ inv.id }}"
+                        hx-target="#side-panel-body" hx-swap="innerHTML"
+                        class="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition">
+                        Asignar
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-400 text-center py-8">No hay vidrios sin ubicar</p>
+    {% endif %}
+</div>

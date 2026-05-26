@@ -73,6 +73,7 @@ class Location(Base):
     full_code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     warehouse_id: Mapped[int] = mapped_column(Integer, default=1)
     capacity: Mapped[int] = mapped_column(Integer, default=1)
+    custom_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     inventories = relationship("Inventory", back_populates="location")

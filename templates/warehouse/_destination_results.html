@@ -1,0 +1,16 @@
+{# _destination_results.html — Solo la lista de resultados (sin input de busqueda) #}
+{% if results %}
+<p class="text-xs text-slate-500 mb-1">Selecciona destino:</p>
+{% for dest in results %}
+<button hx-post="/warehouse/1/glass/{{ g.id }}/move" hx-include="#qty-{{ g.id }}"
+    hx-vals='{"dest_id": {{ dest.id }}}'
+    hx-target="#side-panel-body" hx-swap="innerHTML"
+    class="w-full text-left px-3 py-2 text-xs rounded hover:bg-blue-50 border border-slate-200 transition block">
+    <span class="font-medium text-slate-700">{{ dest.display_name }}</span>
+    <code class="text-slate-400 ml-1">{{ dest.full_code }}</code>
+    <span class="text-slate-400 float-right">{{ dest.used }}/{{ dest.capacity }}</span>
+</button>
+{% endfor %}
+{% else %}
+<p class="text-xs text-slate-400 py-1">Sin resultados para esta busqueda</p>
+{% endif %}

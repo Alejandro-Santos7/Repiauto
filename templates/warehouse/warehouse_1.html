@@ -1,0 +1,27 @@
+{# warehouse_1.html — Almacén 1: Racks con RACKtest.svg real repetido #}
+<div>
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h3 class="text-xl font-bold text-slate-800">Almacen 1 — Racks</h3>
+            <p class="text-sm text-slate-500">Selecciona un rack para ver su contenido</p>
+        </div>
+        <div class="flex items-center gap-0 bg-white rounded-lg border border-slate-200 shadow-sm">
+            <button id="floor-1-btn"
+                hx-get="/warehouse/1/floor/1" hx-target="#racks-grid" hx-swap="innerHTML"
+                onclick="selectFloor(1)"
+                class="px-4 py-2 text-sm rounded-l-lg transition {% if floor == 1 or floor is not defined %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                Piso 1
+            </button>
+            <button id="floor-2-btn"
+                hx-get="/warehouse/1/floor/2" hx-target="#racks-grid" hx-swap="innerHTML"
+                onclick="selectFloor(2)"
+                class="px-4 py-2 text-sm rounded-r-lg transition {% if floor == 2 %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                Piso 2
+            </button>
+        </div>
+    </div>
+
+    <div id="racks-grid">
+        {% include "warehouse/_racks_grid.html" %}
+    </div>
+</div>

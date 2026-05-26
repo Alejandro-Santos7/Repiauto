@@ -1,0 +1,32 @@
+{# _box_contents.html — Contenido de caja (vidrios/SKUs) en panel lateral #}
+<div class="space-y-4">
+    <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100 text-center">
+        <code class="text-lg font-bold text-blue-800">{{ box.lpn_code }}</code>
+        {% if box.location_code %}
+        <p class="text-xs text-blue-600 mt-0.5">📍 {{ box.location_code }}</p>
+        {% else %}
+        <p class="text-xs text-amber-600 mt-0.5">⚠️ Sin ubicacion</p>
+        {% endif %}
+    </div>
+
+    <h4 class="font-semibold text-sm text-slate-700 flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Vidrios
+    </h4>
+
+    {% if items %}
+    <div class="space-y-2">
+        {% for item in items %}
+        <div class="bg-white border border-slate-200 rounded-xl p-3 flex justify-between items-center">
+            <div class="min-w-0 flex-1">
+                <code class="text-sm font-bold text-slate-800">{{ item.sku_usa }}</code>
+                <p class="text-xs text-slate-500 truncate">{{ item.name }}</p>
+            </div>
+            <span class="text-sm font-semibold bg-slate-100 px-2.5 py-1 rounded-full text-slate-700 ml-2 flex-shrink-0">{{ item.quantity }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-400 text-center py-6 bg-slate-50 rounded-xl">Caja vacia</p>
+    {% endif %}
+</div>

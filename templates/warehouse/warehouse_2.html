@@ -1,0 +1,85 @@
+{# warehouse_2.html — Almacén 2: Cuadrícula A-R × 1-8 con pasillo central #}
+{% set rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R'] %}
+{% set cols_left = [1,2,3,4] %}
+{% set cols_right = [5,6,7,8] %}
+
+<div>
+    <div class="mb-5">
+        <h3 class="text-xl font-bold text-slate-800">Almacen 2 — Cuadricula</h3>
+        <p class="text-sm text-slate-500">Filas A-R &middot; Columnas 1-8 &middot; 4 niveles por celda</p>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="mx-auto border-separate" style="border-spacing: 3px;">
+            <thead>
+                <tr>
+                    <th class="w-8"></th>
+                    {% for c in cols_left %}
+                    <th class="w-14 h-7 text-center text-xs font-bold text-slate-400 bg-slate-100 rounded-md">Col {{ c }}</th>
+                    {% endfor %}
+                    <th class="w-4"></th>
+                    {% for c in cols_right %}
+                    <th class="w-14 h-7 text-center text-xs font-bold text-slate-400 bg-slate-100 rounded-md">Col {{ c }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td class="text-center text-xs font-bold text-slate-400 bg-slate-50 rounded-md h-14 w-8">{{ row }}</td>
+                    {% for col in cols_left %}
+                    {% set code_prefix = '2-' + row + '-%02d' % (col|int) %}
+                    {% set cell = cells.get(code_prefix) %}
+                    <td class="w-14 h-14">
+                        <div class="w-full h-full rounded-lg border-2 cursor-pointer transition flex flex-col items-center justify-center
+                            {% if cell and cell.has_items %}bg-emerald-100 border-emerald-300 hover:border-emerald-400 hover:bg-emerald-200{% else %}bg-white border-slate-100 hover:border-slate-300 hover:bg-slate-50{% endif %}"
+                            hx-get="/warehouse/2/cell/{{ row }}/{{ col }}" hx-target="#side-panel-body" hx-swap="innerHTML"
+                            onclick="openPanel(); showBackBtn('cell-{{ row }}-{{ col }}')">
+                            {% if cell and cell.has_items %}
+                            <span class="text-sm font-bold text-emerald-700 leading-none">{{ cell.count }}</span>
+                            <span class="text-[9px] text-emerald-600 leading-none mt-0.5">caja(s)</span>
+                            {% else %}
+                            <span class="text-lg text-slate-200 leading-none">&middot;</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endfor %}
+                    <td class="w-4 bg-slate-100/20 rounded-md"></td>
+                    {% for col in cols_right %}
+                    {% set code_prefix = '2-' + row + '-%02d' % (col|int) %}
+                    {% set cell = cells.get(code_prefix) %}
+                    <td class="w-14 h-14">
+                        <div class="w-full h-full rounded-lg border-2 cursor-pointer transition flex flex-col items-center justify-center
+                            {% if cell and cell.has_items %}bg-emerald-100 border-emerald-300 hover:border-emerald-400 hover:bg-emerald-200{% else %}bg-white border-slate-100 hover:border-slate-300 hover:bg-slate-50{% endif %}"
+                            hx-get="/warehouse/2/cell/{{ row }}/{{ col }}" hx-target="#side-panel-body" hx-swap="innerHTML"
+                            onclick="openPanel(); showBackBtn('cell-{{ row }}-{{ col }}')">
+                            {% if cell and cell.has_items %}
+                            <span class="text-sm font-bold text-emerald-700 leading-none">{{ cell.count }}</span>
+                            <span class="text-[9px] text-emerald-600 leading-none mt-0.5">caja(s)</span>
+                            {% else %}
+                            <span class="text-lg text-slate-200 leading-none">&middot;</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex gap-5 mt-4 text-xs text-slate-500 justify-center">
+        <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded bg-emerald-100 border border-emerald-300 inline-block"></span>
+            Ocupado
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded bg-white border border-slate-200 inline-block"></span>
+            Libre
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded bg-slate-100/20 inline-block"></span>
+            Pasillo
+        </div>
+    </div>
+</div>

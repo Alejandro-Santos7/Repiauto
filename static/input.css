@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-@source "../templates/**/*.html";
+@source "../templates";
+@source "../templates/warehouse";
 
 .modal { display: none; }
 .modal.active { display: flex; }
@@ -14,3 +15,9 @@
     header, .toast, .no-print { display: none !important; }
     body { background: white !important; margin: 0 !important; padding: 0 !important; }
 }
+
+/* SVG hover effects */
+.warehouse-dash-card:hover svg path { stroke-opacity: 1; fill-opacity: 0.5; }
+.rack-card:hover svg path { stroke: rgb(59,130,246); fill: rgba(59,130,246,0.25); }
+.rack-card:hover svg line { stroke: rgb(59,130,246); }
+.warehouse-card:hover svg path { stroke-opacity: 1; fill-opacity: 0.6; }
