@@ -32,6 +32,11 @@ app.include_router(inventory_router)
 app.include_router(locations_router)
 app.include_router(warehouse_router)
 
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

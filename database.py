@@ -2,7 +2,10 @@ import models
 from config import init_db, engine, logger
 from sqlalchemy import text, inspect
 
-init_db()
+try:
+    init_db()
+except Exception as e:
+    logger.warning(f"DB init deferred: {e}")
 
 
 def _migrate():
