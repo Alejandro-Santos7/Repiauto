@@ -21,4 +21,7 @@ def _migrate():
             logger.warning(f"Migration custom_name skipped: {e}")
 
 
-_migrate()
+try:
+    _migrate()
+except Exception as e:
+    logger.warning(f"Migration deferred: {e}")

@@ -1,5 +1,3 @@
-import uuid
-import threading
 import html as html_mod
 from io import BytesIO
 
@@ -10,10 +8,7 @@ from sqlalchemy import or_
 
 from config import SessionLocal, templates, logger
 from models import ProductCatalog
-from utils import (
-    safe_str, safe_int, error_redirect, success_redirect,
-    progress_html, run_import, set_import_progress, get_import_progress, pop_import_progress,
-)
+from utils import safe_str, safe_int, error_redirect, success_redirect, do_import
 
 router = APIRouter()
 
@@ -123,7 +118,7 @@ async def products_delete(request: Request, product_id: int):
 @router.post("/products/import")
 async def products_import(request: Request, file: UploadFile = File(...)):
     if not file.filename or not (file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
-        return HTMLResponse("""<div id="import-progress" class="space-y-4 text-center">
+        return HTMLResponse("""<div class="space-y-4 text-center">
             <p class="text-red-600">Solo se permiten archivos Excel (.xlsx o .xls).</p>
             <button onclick="closeModal()" class="px-4 py-2 bg-slate-600 text-white rounded-lg">Cerrar</button>
         </div>""")
@@ -132,7 +127,7 @@ async def products_import(request: Request, file: UploadFile = File(...)):
         contents = await file.read()
         df = pd.read_excel(BytesIO(contents))
     except Exception as e:
-        return HTMLResponse(f"""<div id="import-progress" class="space-y-4 text-center">
+        return HTMLResponse(f"""<div class="space-y-4 text-center">
             <p class="text-red-600">No se pudo leer el archivo: {str(e)}.</p>
             <button onclick="closeModal()" class="px-4 py-2 bg-slate-600 text-white rounded-lg">Cerrar</button>
         </div>""")
@@ -146,7 +141,7 @@ async def products_import(request: Request, file: UploadFile = File(...)):
             column_map["name"] = col
 
     if "sku_china" not in column_map or "name" not in column_map:
-        return HTMLResponse("""<div id="import-progress" class="space-y-4 text-center">
+        return HTMLResponse("""<div class="space-y-4 text-center">
             <p class="text-red-600">El Excel debe tener las columnas 'CODIGO_PRO' y 'nombre_pro'.</p>
             <button onclick="closeModal()" class="px-4 py-2 bg-slate-600 text-white rounded-lg">Cerrar</button>
         </div>""")
@@ -159,50 +154,37 @@ async def products_import(request: Request, file: UploadFile = File(...)):
             rows_data.append({"sku_china": sku_china, "name": name})
 
     if not rows_data:
-        return HTMLResponse("""<div id="import-progress" class="space-y-4 text-center">
+        return HTMLResponse("""<div class="space-y-4 text-center">
             <p class="text-red-600">No se encontraron productos validos en el archivo.</p>
             <button onclick="closeModal()" class="px-4 py-2 bg-slate-600 text-white rounded-lg">Cerrar</button>
         </div>""")
 
-    task_id = str(uuid.uuid4())
-    total = len(rows_data)
-    set_import_progress(task_id, {
-        "status": "processing",
-        "current": 0, "total": total, "percent": 0,
-        "created": 0, "updated": 0, "skipped": 0,
-    })
-    threading.Thread(target=run_import, args=(task_id, rows_data), daemon=True).start()
-    return HTMLResponse(progress_html(task_id, 0, total, 0, 0, 0, 0, "processing"))
-
-
-@router.get("/products/import/progress/{task_id}")
-async def products_import_progress(task_id: str):
-    data = get_import_progress(task_id)
-    if not data:
-        return HTMLResponse("""<div id="import-progress" class="space-y-4 text-center">
-            <p class="text-red-600">Tarea no encontrada.</p>
-            <button onclick="closeModal()" class="px-4 py-2 bg-slate-600 text-white rounded-lg">Cerrar</button>
-        </div>""")
-
-    status = data["status"]
-    if status == "done":
-        c, u, s = data["created"], data["updated"], data["skipped"]
-        html = progress_html(task_id, data["total"], data["total"], 100, c, u, s, "done")
-        pop_import_progress(task_id)
-        return HTMLResponse(html)
-    elif status == "error":
-        msg = data.get("message", "Error desconocido")
-        pop_import_progress(task_id)
-        return HTMLResponse(f"""<div id="import-progress" class="space-y-4 text-center">
+    try:
+        result = do_import(rows_data)
+    except Exception as e:
+        logger.error(f"Import error: {e}")
+        return HTMLResponse(f"""<div class="space-y-4 text-center">
             <p class="text-red-600 font-medium">Error en la importacion</p>
-            <p class="text-sm text-slate-600">{msg}</p>
+            <p class="text-sm text-slate-600">{str(e)}</p>
             <button onclick="closeModal()" class="px-4 py-2 bg-slate-600 text-white rounded-lg">Cerrar</button>
         </div>""")
-    else:
-        return HTMLResponse(progress_html(
-            task_id, data["current"], data["total"], data["percent"],
-            data["created"], data["updated"], data["skipped"], "processing",
-        ))
+
+    parts = []
+    if result["created"]:
+        parts.append(f"{result['created']} creados")
+    if result["updated"]:
+        parts.append(f"{result['updated']} actualizados")
+    if result["skipped"]:
+        parts.append(f"{result['skipped']} omitidos")
+    msg = ", ".join(parts) if parts else "Sin cambios"
+
+    return HTMLResponse(f"""<div class="space-y-4 text-center">
+        <div class="text-4xl">&#x2705;</div>
+        <p class="text-green-600 text-lg font-bold">Importacion completada</p>
+        <p class="text-slate-600">{msg}</p>
+        <button onclick="closeModal(); window.location.href='/products'"
+            class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ver productos</button>
+    </div>""")
 
 
 @router.post("/products/delete-all")
