@@ -28,6 +28,7 @@ else:
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 templates = Jinja2Templates(directory="templates")
+templates.env.cache_size = 0
 
 
 def init_db():
